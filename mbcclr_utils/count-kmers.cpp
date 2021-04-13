@@ -4,6 +4,7 @@
 #include <string>
 #include <cmath>
 #include <fstream>
+#include "io_utils.h"
 
 using namespace std;
 
@@ -56,7 +57,7 @@ vector<double> count_kmers(string seq)
     for (int i = 0; i < (int)seq.length(); i++)
     {
         val = (val << 2);
-        val = val & (u_int64_t)pow(4, k_size) - 1;
+        val = val & ((u_int64_t)pow(4, k_size) - 1);
         val += (seq[i] >> 1 & 3);
         len++;
 
@@ -108,12 +109,13 @@ void processLinesBatch(vector<string> &linesBatch, string &outputPath, int threa
 int main(int argc, char **argv)
 {
     vector<string> batch;
-    long lineNum = 0;
-
-    string inputPath = argv[1];
-    string outputPath = argv[2];
+    string inputPath, outputPath;
+    int threads;
+    
+    inputPath = argv[1];
+    outputPath = argv[2];
     k_size = stoi(argv[3]);
-    int threads = stoi(argv[4]);
+    threads = stoi(argv[4]);
 
     cout << "INPUT FILE " << inputPath << endl;
     cout << "OUTPUT FILE " << outputPath << endl;
@@ -125,25 +127,17 @@ int main(int argc, char **argv)
     cout << "Profile Size " << kmer_count_len << endl;
     cout << "Total " << k_size << "-mers " << kmer_inds.size() << endl;
 
-    ifstream myfile(inputPath);
-    string line;
-
+    Seq seq;
+    SeqReader reader(inputPath);
     ofstream output;
+
     output.open(outputPath, ios::out);
     output.close();
 
-    while (getline(myfile, line))
+    while (reader.get_seq(seq))
     {
-        if (lineNum % 2 != 1)
-        {
-            lineNum++;
-            continue;
-        }
-        else
-        {
-            batch.push_back(line);
-        }
-        lineNum++;
+        batch.push_back(seq.data);
+
         if (batch.size() == 10000)
         {
             processLinesBatch(batch, outputPath, threads);
@@ -151,9 +145,7 @@ int main(int argc, char **argv)
         }
     }
 
-    processLinesBatch(batch, outputPath, threads);
-
-    myfile.close();
+    processLinesBatch(batch, outputPath, threads);    
     batch.clear();
 
     return 0;

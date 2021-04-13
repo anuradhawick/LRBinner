@@ -1,0 +1,8 @@
+include *.md
+include LICENSE
+
+recursive-include mbcclr_utils/ *
+recursive-include mbcclr_utils/bin/ *
+
+global-exclude mbcclr_utils/ *.pyc
+global-exclude mbcclr_utils/__pycache__ *.pyc

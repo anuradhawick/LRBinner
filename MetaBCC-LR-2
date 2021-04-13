@@ -7,8 +7,8 @@ import logging
 from Bio import SeqIO
 
 from mbcclr_utils import runners_utils
-from mbcclr_utils import sample_data
 from mbcclr_utils import binner_core
+from mbcclr_utils import ae_utils
 
 
 def main():
@@ -177,6 +177,8 @@ def main():
         runners_utils.checkpoint(data, checkpoints_path)
         logger.info("Counting 15-mer profiles complete")
 
+    
+
     end_time = time.time()
     time_taken = end_time - start_time
     logger.info(
@@ -185,6 +187,9 @@ def main():
 
     logger.removeHandler(fileHandler)
     logger.removeHandler(consoleHeader)
+
+    # TODO
+    ae_utils.vae_encode(output, f'{output}/com_profs', f'{output}/cov_profs', latent_dims, hidden_layers, epochs)
 
 
 if __name__ == '__main__':
