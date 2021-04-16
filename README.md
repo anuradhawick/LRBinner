@@ -2,13 +2,13 @@
   <img src="MetaBCC-LR_logo.png" width="600" title="Final Labelling" alt="Final Labelling">
 </p> -->
 
-# MetaBCC-LR-2: Binning Error-Prone Long Reads Using Auto Encoders
+# LRBinner: Binning Error-Prone Long Reads Using Auto Encoders
 
-![GitHub](https://img.shields.io/github/license/anuradhawick/MetaBCC-LR-2)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/MetaBCC-LR-2)
+![GitHub](https://img.shields.io/github/license/anuradhawick/LRBinner)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/LRBinner)
 
 ## Dependencies
-MetaBCC-LR-2 is coded purely using C++ (v9) and Python 3.7. To run MetaBCC-LR-2, you will need to install the following python and C++ modules.
+LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
 ### Python dependencies
 * numpy 1.16.4 
@@ -27,16 +27,16 @@ MetaBCC-LR-2 is coded purely using C++ (v9) and Python 3.7. To run MetaBCC-LR-2,
     * Add DSK binaries to your PATH variable
 
 ## Downloading MetaBCC-LR
-To download MetaBCC-LR-2, you have to clone the MetaBCC-LR-2 repository to your machine.
+To download LRBinner, you have to clone the LRBinner repository to your machine.
 
 ```
-git clone https://github.com/anuradhawick/MetaBCC-LR-2.git
+git clone https://github.com/anuradhawick/LRBinner.git
 ```
 
 ## Compiling the source code
 * Build the binaries
 ```
-cd MetaBCC-LR-2
+cd LRBinner
 python setup.py build
 ```
 OR
@@ -53,8 +53,8 @@ OR add the program path to your $PATH variable.
 In order to run MetaBCC-LR you are required to provide the reads in FASTQ or FASTA format.
 
 ```
-cd MetaBCC-LR-2
-./MetaBCC-LR-2 -h
+cd LRBinner
+./LRBinner -h
 
 
 ```
