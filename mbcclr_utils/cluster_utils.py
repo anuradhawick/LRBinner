@@ -10,7 +10,9 @@ from scipy.signal import find_peaks
 import pickle
 from tqdm import tqdm
 from sklearn.metrics.cluster import adjusted_rand_score
+import logging
 
+logger = logging.getLogger('LRBinner')
 
 # start code from vamb
 def smaller_indices(distances, threshold):

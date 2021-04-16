@@ -7,23 +7,23 @@ import sys
 
 from . import scan_dsk
 
-logger = logging.getLogger('MetaBCC-LR-2')
+logger = logging.getLogger('LRBinner')
 
 def run_kmers(reads, output, k_size, threads):
     if not os.path.isdir(os.path.dirname(output)):
         os.makedirs(os.path.dirname(output))
 
     cmd = f""""{os.path.dirname(__file__)}/bin/count-kmers" "{reads}" "{output}" {k_size} {threads} """
-    print(cmd)
+    logger.debug(cmd)
     o = os.system(cmd)
     check_proc(o, "Counting Trimers")
 
-def run_15mers(dsk_file, reads, output, bin_size, bins, threads):
+def run_15mers(dsk_file, reads, output, bin_size, bin_count, threads):
     if not os.path.isdir(os.path.dirname(output)):
         os.makedirs(os.path.dirname(output))
 
-    cmd = f""""{os.path.dirname(__file__)}/bin/search-15mers" "{dsk_file}" "{reads}" "{output}" {bin_size} {bins} {threads}"""
-    print(cmd)
+    cmd = f""""{os.path.dirname(__file__)}/bin/search-15mers" "{dsk_file}" "{reads}" "{output}" {bin_size} {bin_count} {threads}"""
+    logger.debug(cmd)
     o = os.system(cmd)
     check_proc(o, "Counting 15-mer profiles")
 
@@ -32,7 +32,7 @@ def run_dsk(reads, output, min_abundance, max_memory, threads):
         os.makedirs(f"{output}")
     logger.debug("Running DSK")
     cmdDSK = f"""dsk -verbose 0 -file "{reads}" -kmer-size 15 -abundance-min {min_abundance} -out-dir "{output}/DSK" -max-memory {max_memory} -nb-cores {threads}"""
-
+    logger.debug(cmdDSK)
     o = os.system(cmdDSK)
     check_proc(o, "Running DSK")
     o = os.system(f"""mv "{output}"/DSK/*.h5 "{output}"/DSK/output.h5 """)

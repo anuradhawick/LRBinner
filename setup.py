@@ -26,20 +26,20 @@ package_data = {
 data_files = [(".", ["LICENSE", "README.md"])]
 
 setuptools.setup(
-    name="MetaBCC-LR-2", # Replace with your own username
+    name="LRBinner", # Replace with your own username
     version="0.0.1",
     zip_safe=True,
     author="Anuradha Wickramarachchi",
     author_email="anuradhawick@gmail.com",
-    description="MetaBCC-LR-2",
+    description="LRBinner",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/anuradhawick/MetaBCC-LR",
+    url="https://github.com/anuradhawick/LRBinner",
     packages=packages,
     package_data=package_data,
     data_files=data_files,
     include_package_data=True,
-    scripts=['MetaBCC-LR'],
+    scripts=['LRBinner'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         "Programming Language :: Python :: 3",

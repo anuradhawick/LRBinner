@@ -5,7 +5,7 @@ import os
 import argparse
 import logging
 
-logger = logging.getLogger('MetaBCC-LR')
+logger = logging.getLogger('LRBinner')
 
 def write(args):
     key, dsk_output, output = args
@@ -31,4 +31,6 @@ def scan_dsk(dsk_output, threads, output):
     logger.debug("Gathering DSK result")
     
     cmd = """cat "{0}"/*.chunk > "{0}/15mersCounts" """.format(output)
+    os.system(cmd)
+    cmd = """rm "{0}"/*.chunk """.format(output)
     os.system(cmd)

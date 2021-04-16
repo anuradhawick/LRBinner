@@ -7,6 +7,10 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch.nn.functional as F
+import logging
+
+logger = logging.getLogger('LRBinner')
+
 
 def make_data_loader(covs, profs, *, batch_size=1024*10, drop_last=True, shuffle=True):
     # Scaling profs

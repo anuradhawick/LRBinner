@@ -7,12 +7,11 @@ import logging
 from Bio import SeqIO
 
 from mbcclr_utils import runners_utils
-from mbcclr_utils import binner_core
 from mbcclr_utils import ae_utils
 
 
 def main():
-    parser = argparse.ArgumentParser(description="""MetaBCC-LR-2 Help. A tool developed for binning of metagenomics long reads (PacBio/ONT). \
+    parser = argparse.ArgumentParser(description="""LRBinner Help. A tool developed for binning of metagenomics long reads (PacBio/ONT). \
             Tool utilizes composition and coverage profiles of reads based on k-mer frequencies to perform dimension reduction via a deep variational auto-encoder. \
             dimension reduced reads are then clustered using a randomised clustering algorithm. Minimum RAM requirement is 9GB.""")
 
@@ -25,27 +24,22 @@ def main():
                         type=int,
                         default=8,
                         required=False)
-    # parser.add_argument('--ground-truth', '-g',
-    #                     help="Ground truth of reads for dry runs and sensitivity tuning",
-    #                     type=str,
-    #                     required=False,
-    #                     default=None)
     parser.add_argument('--bin-size', '-bs',
                         help="Bin size for the coverage histogram.",
                         type=int,
                         required=False,
                         default=10)
+    parser.add_argument('--bin-count', '-bc',
+                        help="Number of bins for the coverage histogram.",
+                        type=int,
+                        required=False,
+                        default=32)                        
     parser.add_argument('--k-mer-vector', '-k',
                         help="k value for k-mer frequency vector. Choose between 3 and 5.",
                         type=int,
                         required=False,
                         choices=[3, 4, 5, 6, 7],
-                        default=10)
-    parser.add_argument('--bin-count', '-bc',
-                        help="Number of bins for the coverage histogram.",
-                        type=int,
-                        required=False,
-                        default=32)
+                        default=3)
     parser.add_argument('--max-memory', '-m',
                         help="Default 5000. DSK k-mer counter accepts a max memory parameter. However, the complete pipeline requires 5GB+ RAM. \
                             This is only to make DSK step faster, should you have more RAM.",
@@ -78,18 +72,24 @@ def main():
                         help="Show version.",
                         version='%(prog)s 0.1')
 
+    # command line args
     args = parser.parse_args()
 
     reads_path = args.reads_path
-    output = args.output
     threads = args.threads
-    ground_truth = args.ground_truth
-    resume = args.resume
     bin_size = args.bin_size
+    bin_count = args.bin_count
+    k_mer_vector = args.k_mer_vector
     max_memory = max(args.max_memory, 5000)
+    epochs = args.ae_epochs
+    dims = args.ae_dims
+    hidden = list(map(int, args.ae_hidden.split(",")))
+    resume = args.resume
+    output = args.output
+
     checkpoints_path = f"{output}/checkpoints"
 
-    logger = logging.getLogger('MetaBCC-LR')
+    logger = logging.getLogger('LRBinner')
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -115,15 +115,13 @@ def main():
         print("Exitting process. Good Bye!")
         sys.exit(1)
 
-    if ground_truth and not os.path.isfile(ground_truth):
-        print("Failed to open read ids. Continue without ids")
-        ground_truth = None
-
     if not os.path.exists(output):
         os.makedirs(output)
-        os.makedirs(f"{output}/")
+        os.makedirs(f"{output}/profiles")
 
-    fileHandler = logging.FileHandler(f"{output}/metabcc-lr-2.log")
+    # Validation of inputs end
+
+    fileHandler = logging.FileHandler(f"{output}/LRBinner.log")
     fileHandler.setLevel(logging.DEBUG)
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)
@@ -131,11 +129,11 @@ def main():
     if not resume:
         data = {}
         data['r'] = reads_path
+        data['k'] = k_mer_vector
+        data['bs'] = bin_size
+        data['bc'] = bin_count
         data['o'] = output
         data['t'] = threads
-        data['i'] = ground_truth
-        data['c'] = sample_count
-        data['s'] = sensitivity
         data['completed'] = set()
 
         runners_utils.checkpoint(data, checkpoints_path)
@@ -143,41 +141,37 @@ def main():
     # running program
     start_time = time.time()
 
-    if resume:
-        logger.info("Resuming the program from previous checkpoints")
-        data = runners_utils.load_checkpoints(checkpoints_path)
-        logger.debug(str(data))
+    # if resume:
+    #     logger.info("Resuming the program from previous checkpoints")
+    #     data = runners_utils.load_checkpoints(checkpoints_path)
+    #     logger.debug(str(data))
 
-    # if resume and "filtering" not in data['completed'] or not resume:
-    #     logger.info("Filtering reads")
-    #     runners_utils.run_filter(reads_path, output, ground_truth)
-    #     data['completed'].add('filtering')
+    # if resume and "dsk" not in data['completed'] or not resume:
+    #     logger.info("Running DSK k-mer counting")
+    #     runners_utils.run_dsk(reads_path, output, 2, max_memory, threads)
+    #     logger.info("Running DSK k-mer counting complete")
+    #     data['completed'].add('dsk')
     #     runners_utils.checkpoint(data, checkpoints_path)
-    #     logger.info("Filtering reads complete")
+    #     logger.info("Running DSK k-mer complete")
 
-    if resume and "dsk" not in data['completed'] or not resume:
-        logger.info("Running DSK k-mer counting")
-        runners_utils.run_dsk(output, max_memory, threads)
-        logger.info("Running DSK k-mer counting complete")
-        data['completed'].add('dsk')
-        runners_utils.checkpoint(data, checkpoints_path)
-        logger.info("Running DSK k-mer complete")
+    # return
 
-    if resume and "kmer_vecs" not in data['completed'] or not resume:
-        logger.info("Counting k-mers")
-        runners_utils.run_kmers(output, threads)
-        data['completed'].add('kmer_vecs')
-        runners_utils.checkpoint(data, checkpoints_path)
-        logger.info("Counting k-mers complete")
+    # if resume and "kmer_vecs" not in data['completed'] or not resume:
+    #     logger.info("Counting k-mers")
+    #     runners_utils.run_kmers(reads_path, f"{output}/profiles/com_profs", k_mer_vector, threads)
+    #     data['completed'].add('kmer_vecs')
+    #     runners_utils.checkpoint(data, checkpoints_path)
+    #     logger.info("Counting k-mers complete")
 
     if resume and "15mers" not in data['completed'] or not resume:
         logger.info("Counting 15-mer profiles")
         data['completed'].add('15mers')
-        runners_utils.run_15mers(dsk_file, output, bin_size, bins, threads)
+        dsk_file = f"{output}/DSK/15mersCounts"
+        runners_utils.run_15mers(dsk_file, reads_path, f"{output}/profiles/cov_profs", bin_size, bin_count, threads)
         runners_utils.checkpoint(data, checkpoints_path)
         logger.info("Counting 15-mer profiles complete")
 
-    
+    return 
 
     end_time = time.time()
     time_taken = end_time - start_time
