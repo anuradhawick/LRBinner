@@ -52,10 +52,41 @@ OR add the program path to your $PATH variable.
 ## Running the MetaBCC-LR
 In order to run MetaBCC-LR you are required to provide the reads in FASTQ or FASTA format.
 
+### Test run data
+
+Extract test data from `test_data` folder;
+
+```
+LRBinner -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 -bit 0
+```
+
+### Test run results
+
+Note that the results could vary due to slight sampling differences. Evaluations can be done using the `eval.py` script.
+
+```
+_                         Bin-0_(2)  Bin-1_(3)  Bin-2_(1)  Bin-3_(0)  Bin-4_(4)
+Campylobacter_jejuni      1          0          0          63         5726
+Acetobacter_pasteurianus  592        6138       58         42         0
+Yersinia_pestis_Angola    30946      255        25         370        181
+Lactobacillus_paracasei   157        0          6962       100        0
+Chlamydia_psittaci        0          0          0          5512       0
+
+Precision            96.77
+Recall               96.77
+F1-Score             96.77
+```
+
+### Available LRBinner Commands 
+
+Use the `-h` argument to list all the available commands.
 ```
 cd LRBinner
 ./LRBinner -h
+```
+### Help
 
+```
 usage: LRBinner [-h] --reads-path READS_PATH [--threads THREADS]
                 [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
                 [--k-mer-vector {3,4,5}] [--max-memory MAX_MEMORY]
@@ -111,7 +142,6 @@ optional arguments:
 ```
 * Output path is the foldername that you wish the results to be in.
 * Specify the number of threads
-* The program requires a minimum of 5GB to run. This is because we have optimized the coverage histogram generation process to accommodate all 15mers in RAM for faster lookup of counts.
 <!-- 
 ## Citation
 

@@ -177,7 +177,7 @@ def cluster_points(latent, iterations, min_cluster_size):
 
     if iterations != 0:
         for x in tqdm(range(iterations), total=iterations, desc="Performing iterations"):
-            if len(read_ids) < min_cluster_size * 0.1:
+            if len(read_ids) < min_cluster_size * 0.6:
                 break
             random_point = random.choice(read_ids)
             best_point, distance_cache, maxima, minima, tail = get_cluster_center(matrix, random_point)

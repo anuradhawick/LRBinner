@@ -15,7 +15,7 @@ from mbcclr_utils import cluster_utils
 def main():
     parser = argparse.ArgumentParser(description="""LRBinner Help. A tool developed for binning of metagenomics long reads (PacBio/ONT). \
             Tool utilizes composition and coverage profiles of reads based on k-mer frequencies to perform dimension reduction via a deep variational auto-encoder. \
-            dimension reduced reads are then clustered using a randomised clustering algorithm. Minimum RAM requirement is 9GB.""")
+            Dimension reduced reads are then clustered using a novel distance histogram based clustering algorithm. Minimum RAM requirement is 9GB.""")
 
     parser.add_argument('--reads-path', '-r',
                         help="Reads path for binning",
