@@ -67,8 +67,8 @@ usage: LRBinner [-h] --reads-path READS_PATH [--threads THREADS]
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT). Tool utilizes composition and coverage profiles of reads based
 on k-mer frequencies to perform dimension reduction via a deep variational
-auto-encoder. dimension reduced reads are then clustered using a randomised
-clustering algorithm. Minimum RAM requirement is 9GB.
+auto-encoder. Dimension reduced reads are then clustered using a novel 
+distance histogram based clustering algorithm. Minimum RAM requirement is 9GB.
 
 optional arguments:
   -h, --help            show this help message and exit
