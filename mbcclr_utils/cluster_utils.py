@@ -1,16 +1,14 @@
 import numpy as np
 from collections import defaultdict
-import random
-import seaborn as sns
 import torch
 import matplotlib.pyplot as plt 
 import math
 import random
-from scipy.signal import find_peaks
 import pickle
 from tqdm import tqdm
-from sklearn.metrics.cluster import adjusted_rand_score
 import logging
+import os
+from Bio import SeqIO
 
 logger = logging.getLogger('LRBinner')
 
@@ -123,7 +121,7 @@ def find_valley_ratio(densities):
     
     return min_density/peak_density, maxima, early_minima, minima
 
-def get_cluster_center(matrix, seed, peak_sampling_size):
+def get_cluster_center(matrix, seed):
     distances = calc_distances(matrix, seed)
     histogram = torch.histc(distances, math.ceil(_XMAX/_DELTA_X), 0, _XMAX)
     histogram[0] -= 1 
@@ -136,10 +134,12 @@ def get_cluster_center(matrix, seed, peak_sampling_size):
     from_x, to_x = chosen_peak-_DELTA_X*5, chosen_peak+_DELTA_X*5
     chosen_points = [p for p, x in enumerate(distances.numpy()) if to_x>x>from_x]
 
-    if len(chosen_points) < peak_sampling_size:
+    if len(chosen_points) < 100:
         return False, False, False, False, False
     
-    sampled_points = random.sample(chosen_points, min_cluster_size)
+    sample_size  = min(1000, max(100, len(chosen_points) * 0.01))
+    sample_size = int(sample_size)
+    sampled_points = random.sample(chosen_points, sample_size)
     
     
     ratio = 10000
@@ -169,34 +169,62 @@ def get_cluster_center(matrix, seed, peak_sampling_size):
 
     return best_point, distance_cache, maxima, minima, tail    
 
-def cluster_points(latent, iterations, min_cluster_size=10000, peak_sampling_size=1000):
+def cluster_points(latent, iterations, min_cluster_size):
     matrix = normalize(latent)
     clusters = defaultdict(list)
     read_ids = np.arange(len(matrix))
     read_ids_ref = np.arange(len(matrix))
 
-    for x in range(iterations):
-        if len(read_ids) < min_cluster_size:
-            break
-        random_point = random.choice(read_ids)
-        best_point, distance_cache, maxima, minima, tail = get_cluster_center(matrix, random_point, peak_sampling_size)
-        
+    if iterations != 0:
+        for x in tqdm(range(iterations), total=iterations, desc="Performing iterations"):
+            if len(read_ids) < min_cluster_size * 0.1:
+                break
+            random_point = random.choice(read_ids)
+            best_point, distance_cache, maxima, minima, tail = get_cluster_center(matrix, random_point)
+            
+            if tail:
+                cluster_pts = smaller_indices(distance_cache, tail)
+                removables = smaller_indices(distance_cache, tail)
+                removables_idx = set(read_ids_ref[removables])       
+                clusters[x] = set(read_ids_ref[cluster_pts])
 
-        if tail:
-            cluster_pts = smaller_indices(distance_cache, tail)
-            
-            removables = smaller_indices(distance_cache, tail)
-            removables_idx = set(read_ids_ref[removables])       
-            clusters[x] = set(read_ids_ref[cluster_pts])
-            
-            new_read_ids_ref = np.array([y for y in read_ids_ref if y not in removables_idx])
-            new_matrix = np.delete(matrix.numpy(), removables, axis=0)
-            
-            new_read_ids = np.arange(len(new_read_ids_ref))
+                new_read_ids_ref = np.array([y for y in read_ids_ref if y not in removables_idx])
+                new_matrix = np.delete(matrix.numpy(), removables, axis=0)
+                new_read_ids = np.arange(len(new_read_ids_ref))
+                matrix = torch.from_numpy(new_matrix)
+                read_ids = new_read_ids
+                read_ids_ref = new_read_ids_ref
+    else:
+        x = 0
 
-            matrix = torch.from_numpy(new_matrix)
-            read_ids = new_read_ids
-            read_ids_ref = new_read_ids_ref
+        while True:
+            if len(read_ids) < min_cluster_size * 0.1:
+                break
+            
+            finish_search = True
+            random_candidates = list(read_ids)
+            random.shuffle(random_candidates)
+
+            for random_point in tqdm(random_candidates, desc="Performing exhaustive search!"):
+                best_point, distance_cache, maxima, minima, tail = get_cluster_center(matrix, random_point)
+
+                if tail:
+                    cluster_pts = smaller_indices(distance_cache, tail)
+                    removables = smaller_indices(distance_cache, tail)
+                    removables_idx = set(read_ids_ref[removables])
+                    clusters[x] = set(read_ids_ref[cluster_pts])
+                    x += 1
+                    
+                    new_read_ids_ref = np.array([y for y in read_ids_ref if y not in removables_idx])
+                    new_matrix = np.delete(matrix.numpy(), removables, axis=0)
+                    new_read_ids = np.arange(len(new_read_ids_ref))
+                    matrix = torch.from_numpy(new_matrix)
+                    read_ids = new_read_ids
+                    read_ids_ref = new_read_ids_ref
+                    finish_search = False
+                    break
+            if finish_search:
+                break
       
     return clusters
 
@@ -209,16 +237,24 @@ def normal(val, mean, std):
 
     return pdf
 
-def perform_binning(save_path, latent, iterations, min_cluster_size=10000, peak_sampling_size=1000):
-    clusters = cluster_points(latent, iterations, min_cluster_size/2, peak_sampling_size=1000)
+def perform_binning(output, iterations, min_cluster_size, binreads, reads):
+    latent = np.load(f'{output}/latent.npy')
+    logger.info("Clustering algorithm running")
+    clusters = cluster_points(latent, iterations, min_cluster_size)
     clusters_output = {}
+    logger.info(f"Detected {len(clusters)}")
 
     for k, v in clusters.items():
         if len(v) > min_cluster_size:
             clusters_output[len(clusters_output)] = list(map(int, v))
-
+    logger.info(f"Detected {len(clusters_output)} clusters with more than {min_cluster_size} points")
     cluster_profiles = {}
     classified_reads = []
+
+    logger.info("Building profiles")
+    
+    comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
+    cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
 
     for k, rs in clusters_output.items():
         vecs = []
@@ -232,9 +268,11 @@ def perform_binning(save_path, latent, iterations, min_cluster_size=10000, peak_
         }
     classified_reads = set(classified_reads)
 
-    all_reads = set(range(len(ground_truth)))
+    all_reads = set(range(len(comp_profiles)))
     unclassified_reads = all_reads - classified_reads
 
+    logger.debug(f"Unclassified points to cluster {len(unclassified_reads)}")
+    logger.info(f"Binning unclassified reads")
     for r in tqdm(unclassified_reads):
         max_p = float('-inf')
         best_c = None
@@ -249,4 +287,45 @@ def perform_binning(save_path, latent, iterations, min_cluster_size=10000, peak_
         if best_c is not None:
             clusters_output[best_c].append(r)
 
-    pickle.dump(clusters_output, open(f"{save_path}/binning_result.pkl", "wb+"))
+    logger.info(f"Binning complete with {len(clusters_output)} bins")
+    pickle.dump(clusters_output, open(f"{output}/binning_result.pkl", "wb+"))
+
+    # separating reads into bins
+    if binreads:
+        bin_files = {}
+    read_bin = {}
+
+    if binreads:
+        if os.path.isdir(f"{output}/binned_reads"):
+            os.rmdir(f"{output}/binned_reads")
+
+        if not os.path.isdir(f"{output}/binned_reads"):
+            os.makedirs(f"{output}/binned_reads")
+
+    for k, v in clusters_output.items():
+        if binreads:
+            if not os.path.isdir(f"{output}/bin-{k}/"):
+                os.makedirs(f"{output}/bin-{k}/")
+
+            bin_files[k] = open(f"{output}/bin-{k}/reads.fasta", "w+")
+
+        for r in v:
+            read_bin[r] = k
+
+    binout = open(f"{output}/bins.txt", "w+")
+    lenout = open(f"{output}/lengths.txt", "w+")
+    fmt = "fasta" if reads.split('.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
+
+    for r, record in enumerate(SeqIO.parse(reads, fmt)):
+        binout.write(f"{read_bin[r]}\n")
+        lenout.write(f"{len(record.seq)}\n")
+        if binreads:
+            bin_files[read_bin[r]].write(f">read-{r}\n")
+            bin_files[read_bin[r]].write(f"{record.seq}\n")
+
+    binout.close()
+    lenout.close()
+
+    if binreads:
+        for k, f in bin_files.items():
+            f.close()

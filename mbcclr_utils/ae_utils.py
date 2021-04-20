@@ -8,6 +8,7 @@ from torch.utils.data.dataset import TensorDataset
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import torch.nn.functional as F
 import logging
+from tqdm import tqdm
 
 logger = logging.getLogger('LRBinner')
 
@@ -170,7 +171,7 @@ class VAE(nn.Module):
             epoch_mseloss += e_comp.data.item()
             epoch_celoss += e_cov.data.item()
 
-            print(f'Epoch: {epoch + 1:4} Done {(n+1)/len(data_loader)*100:3.2f} Loss: {epoch_loss / len(data_loader):.6f}\tEC: {epoch_celoss / len(data_loader):.7f}\tEP: {epoch_mseloss / len(data_loader):.6f}\tKLD: {epoch_kldloss / len(data_loader):.4f}\tBatchsize: {data_loader.batch_size}', end='\r')
+        logger.debug(f'Epoch: {epoch + 1:4} Loss: {epoch_loss / len(data_loader):.6f}\tEC: {epoch_celoss / len(data_loader):.7f}\tEP: {epoch_mseloss / len(data_loader):.6f}\tKLD: {epoch_kldloss / len(data_loader):.4f}\tBatchsize: {data_loader.batch_size}')
 
         return data_loader
     
@@ -194,9 +195,8 @@ class VAE(nn.Module):
         batchsteps_set = set(batchsteps)
         optimizer = optim.Adam(self.parameters(), lr=lrate)
 
-        for epoch in range(nepochs):
+        for epoch in tqdm(range(nepochs), total=nepochs, desc="Training VAE"):
             dataloader = self.trainepoch(dataloader, epoch, optimizer, batchsteps_set, logfile)
-            print()
         self.save(save_path)
 
 
@@ -211,13 +211,16 @@ class VAE(nn.Module):
 
         torch.save(state, save_path)
 
-def vae_encode(save_path, comp_profiles, cov_profiles, latent_dims, hidden_layers, epochs):
-    vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1], latent_dims, hidden_layers)
+def vae_encode(output, latent_dims, hidden_layers, epochs):
+    comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
+    cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
+
+    vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1], latent_dims=latent_dims, hidden_layers=hidden_layers)
     
     dloader = make_data_loader(cov_profiles, comp_profiles)
-    vae.trainmodel(dloader, save_path=f"{save_path}/model.pt", nepochs=epochs, batchsteps=[50,100,150])
+    vae.trainmodel(dloader, save_path=f"{output}/model.pt", nepochs=epochs, batchsteps=[50,100,150])
     
     dloader_encode = make_data_loader(cov_profiles, comp_profiles, drop_last=False, shuffle=False)
     latent = vae.encode(dloader_encode)
     
-    np.save(f"{save_path}/latent", latent)
+    np.save(f"{output}/latent", latent)

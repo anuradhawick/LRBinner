@@ -5,9 +5,11 @@ import sys
 import time
 import logging
 from Bio import SeqIO
+import numpy as np
 
 from mbcclr_utils import runners_utils
 from mbcclr_utils import ae_utils
+from mbcclr_utils import cluster_utils
 
 
 def main():
@@ -33,12 +35,12 @@ def main():
                         help="Number of bins for the coverage histogram.",
                         type=int,
                         required=False,
-                        default=32)                        
+                        default=32)
     parser.add_argument('--k-mer-vector', '-k',
                         help="k value for k-mer frequency vector. Choose between 3 and 5.",
                         type=int,
                         required=False,
-                        choices=[3, 4, 5, 6, 7],
+                        choices=[3, 4, 5],
                         default=3)
     parser.add_argument('--max-memory', '-m',
                         help="Default 5000. DSK k-mer counter accepts a max memory parameter. However, the complete pipeline requires 5GB+ RAM. \
@@ -61,6 +63,19 @@ def main():
                         type=str,
                         required=False,
                         default="128,128")
+    parser.add_argument('--min-bin-size', '-mbs',
+                        help="The minimum number of reads a bin should have.",
+                        type=int,
+                        required=False,
+                        default=10000)
+    parser.add_argument('--bin-iterations', '-bit',
+                        help="Number of iterations for cluster search. Use 0 for exhaustive search.",
+                        type=int,
+                        required=False,
+                        default=1000)  
+    parser.add_argument('--separate-reads', '-sep',
+                        help="Flag to separate reads into bins detected. Avaialbe in folder named 'binned'.",
+                        action='store_true')                                                
     parser.add_argument('--resume',
                         action='store_true',
                         help='Continue from the last step or the binning step (which ever comes first). Can save time needed to run DSK and obtain k-mers.'
@@ -84,7 +99,10 @@ def main():
     epochs = args.ae_epochs
     dims = args.ae_dims
     hidden = list(map(int, args.ae_hidden.split(",")))
+    binreads = args.separate_reads
     resume = args.resume
+    min_cluster_size = max(args.min_bin_size, 1)
+    iterations = max(args.bin_iterations, 0)
     output = args.output
 
     checkpoints_path = f"{output}/checkpoints"
@@ -128,12 +146,23 @@ def main():
 
     if not resume:
         data = {}
-        data['r'] = reads_path
-        data['k'] = k_mer_vector
-        data['bs'] = bin_size
-        data['bc'] = bin_count
-        data['o'] = output
-        data['t'] = threads
+        # general
+        data['reads'] = reads_path
+        data['threads'] = threads
+        data['output'] = output
+
+        # vectorise related
+        data['kmer'] = k_mer_vector
+
+        # coverage profile related
+        data['bin_size'] = bin_size
+        data['bin_count'] = bin_count
+
+        # ae related
+        data['ae_dims'] = dims
+        data['ae_hidden'] = hidden
+        data['epochs'] = epochs
+
         data['completed'] = set()
 
         runners_utils.checkpoint(data, checkpoints_path)
@@ -141,49 +170,90 @@ def main():
     # running program
     start_time = time.time()
 
-    # if resume:
-    #     logger.info("Resuming the program from previous checkpoints")
-    #     data = runners_utils.load_checkpoints(checkpoints_path)
-    #     logger.debug(str(data))
+    if resume:
+        logger.info("Resuming the program from previous checkpoints")
+        data = runners_utils.load_checkpoints(checkpoints_path)
+        logger.debug(str(data))
 
-    # if resume and "dsk" not in data['completed'] or not resume:
-    #     logger.info("Running DSK k-mer counting")
-    #     runners_utils.run_dsk(reads_path, output, 2, max_memory, threads)
-    #     logger.info("Running DSK k-mer counting complete")
-    #     data['completed'].add('dsk')
-    #     runners_utils.checkpoint(data, checkpoints_path)
-    #     logger.info("Running DSK k-mer complete")
+    if resume and "dsk" not in data['completed'] or not resume:
+        logger.info("Running DSK k-mer counting")
+        runners_utils.run_dsk(reads_path, output, 2, max_memory, threads)
+        logger.info("Running DSK k-mer counting complete")
+        data['completed'].add('dsk')
+        runners_utils.checkpoint(data, checkpoints_path)
+        logger.info("Running DSK k-mer complete")
 
-    # return
+    data_changed = False
+    if resume and ("kmer_vecs" not in data['completed'] or data['kmer'] != k_mer_vector) or not resume:
+        logger.info("Counting k-mers")
+        runners_utils.run_kmers(reads_path, f"{output}/profiles/com_profs", k_mer_vector, threads)
+        data['kmer'] = k_mer_vector
+        data['completed'].add('kmer_vecs')
+        runners_utils.checkpoint(data, checkpoints_path)
+        logger.info("Counting k-mers complete")
+        data_changed = True
 
-    # if resume and "kmer_vecs" not in data['completed'] or not resume:
-    #     logger.info("Counting k-mers")
-    #     runners_utils.run_kmers(reads_path, f"{output}/profiles/com_profs", k_mer_vector, threads)
-    #     data['completed'].add('kmer_vecs')
-    #     runners_utils.checkpoint(data, checkpoints_path)
-    #     logger.info("Counting k-mers complete")
-
-    if resume and "15mers" not in data['completed'] or not resume:
+    if resume and ("15mers" not in data['completed'] or
+                   data['bin_size'] != bin_size or data['bin_count'] != bin_count) or not resume:
         logger.info("Counting 15-mer profiles")
-        data['completed'].add('15mers')
         dsk_file = f"{output}/DSK/15mersCounts"
-        runners_utils.run_15mers(dsk_file, reads_path, f"{output}/profiles/cov_profs", bin_size, bin_count, threads)
+        runners_utils.run_15mers(dsk_file,
+                                 reads_path, f"{output}/profiles/cov_profs", bin_size, bin_count, threads)
+        data['bin_size'] = bin_size
+        data['bin_count'] = bin_count
+        data['completed'].add('15mers')
         runners_utils.checkpoint(data, checkpoints_path)
         logger.info("Counting 15-mer profiles complete")
+        data_changed = True
 
-    return 
+    if data_changed:
+        logger.info("Profiles saving as numpy arrays")
+        comp_profiles = np.array([np.array(list(map(float, line.strip().split()))) for line in open(
+            f"{output}/profiles/com_profs") if len(line.strip()) > 0])
+        cov_profiles = np.array([np.array(list(map(float, line.strip().split()))) for line in open(
+            f"{output}/profiles/cov_profs") if len(line.strip()) > 0])
+
+        np.save(f"{output}/profiles/com_profs", comp_profiles)
+        np.save(f"{output}/profiles/cov_profs", cov_profiles)
+
+        del comp_profiles
+        del cov_profiles
+
+        logger.info("Profiles saving as numpy arrays complete")
+
+    if resume and ("encode" not in data['completed'] or data['ae_dims'] != dims or
+                   data['ae_hidden'] != hidden or
+                   data['epochs'] != epochs) or not resume:
+
+        logger.info(f"VAE Training information")
+        logger.info(f"\tDimensions {dims}")
+        logger.info(f"\tHidden Layers {hidden}")
+        logger.info(f"\tEpochs {epochs}")
+
+        ae_utils.vae_encode(
+            output,
+            dims,
+            hidden,
+            epochs)
+        data['ae_dims'] = dims
+        data['ae_hidden'] = hidden
+        data['epochs'] = epochs
+        data['completed'].add('encode')
+
+        runners_utils.checkpoint(data, checkpoints_path)
+        logger.info(f"VAE Training complete")
+
+    cluster_utils.perform_binning(output, iterations, min_cluster_size, binreads, reads_path)
 
     end_time = time.time()
     time_taken = end_time - start_time
     logger.info(
-        f"Program Finished!. Please find the output in {output}/final.txt")
+        f"Program Finished!. Please find the output in bins.txt")
     logger.info(f"Total time consumed = {time_taken:10.2f} seconds")
+    logger.info(f"Thank you for using LRBinner. Feedback will be much appreciated!")
 
     logger.removeHandler(fileHandler)
     logger.removeHandler(consoleHeader)
-
-    # TODO
-    ae_utils.vae_encode(output, f'{output}/com_profs', f'{output}/cov_profs', latent_dims, hidden_layers, epochs)
 
 
 if __name__ == '__main__':
