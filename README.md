@@ -1,5 +1,5 @@
 <!-- <p align="center">
-  <img src="MetaBCC-LR_logo.png" width="600" title="Final Labelling" alt="Final Labelling">
+  <img src="LRBinner_logo.png" width="600" title="Final Labelling" alt="Final Labelling">
 </p> -->
 
 # LRBinner: Binning Error-Prone Long Reads Using Auto Encoders
@@ -26,7 +26,7 @@ LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you wil
 * DSK: https://github.com/GATB/dsk
     * Add DSK binaries to your PATH variable
 
-## Downloading MetaBCC-LR
+## Downloading LRBinner
 To download LRBinner, you have to clone the LRBinner repository to your machine.
 
 ```
@@ -49,8 +49,8 @@ pip install .
 ```
 OR add the program path to your $PATH variable.
 
-## Running the MetaBCC-LR
-In order to run MetaBCC-LR you are required to provide the reads in FASTQ or FASTA format.
+## Running the LRBinner
+In order to run LRBinner you are required to provide the reads in FASTQ or FASTA format.
 
 ```
 cd LRBinner
