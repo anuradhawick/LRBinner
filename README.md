@@ -7,6 +7,13 @@
 ![GitHub](https://img.shields.io/github/license/anuradhawick/LRBinner)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/LRBinner)
 
+# :exclamation:Notice :stop_sign:
+
+* A new upadate will be available end of June 2021 with much faster vectorization and GPU support. Stay tuned 😄
+* New test examples and results with blogs will also be available soon 🔖 
+
+
+
 ## Dependencies
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
