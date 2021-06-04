@@ -162,6 +162,7 @@ def main():
 
     # running program
     start_time = time.time()
+    logger.info("Command " + " ".join(sys.argv))
 
     if resume:
         logger.info("Resuming the program from previous checkpoints")
