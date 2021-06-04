@@ -4,13 +4,22 @@
 #include <string>
 #include <cmath>
 #include <fstream>
+#include <queue>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 #include "io_utils.h"
 
 using namespace std;
 
 uint32_t kmer_count_len = 0;
 map<uint32_t, uint32_t> kmer_inds;
+uint32_t *kmer_inds_index;
 uint32_t k_size;
+queue<string> reads_queue;
+mutex mux;
+condition_variable condition;
+volatile bool terminate_threads;
 
 u_int64_t rev_comp(u_int64_t x)
 {
@@ -45,6 +54,13 @@ void compute_kmer_inds()
             ind += 1;
         }
     }
+
+    kmer_inds_index = new uint32_t[kmer_inds.size()];
+
+    for (auto its = kmer_inds.begin(); its != kmer_inds.end(); its++)
+    {
+        kmer_inds_index[its->first] = its->second;
+    }
 }
 
 vector<double> count_kmers(string seq)
@@ -65,7 +81,7 @@ vector<double> count_kmers(string seq)
         {
             // use val as the kmer for counting
             len--;
-            profile[kmer_inds[val]]++;
+            profile[kmer_inds_index[val]]++;
             total++;
         }
     }
@@ -78,11 +94,11 @@ vector<double> count_kmers(string seq)
     return profile;
 }
 
-void processLinesBatch(vector<string> &linesBatch, string &outputPath, int threads)
+void processLinesBatch(vector<string> &linesBatch, string &output_path, int threads)
 {
     vector<vector<double>> results(linesBatch.size());
     ofstream output;
-    output.open(outputPath, ios::out | ios::app);
+    output.open(output_path, ios::out | ios::app);
     string o = "";
 
 #pragma omp parallel for num_threads(threads) schedule(dynamic, 1)
@@ -106,19 +122,83 @@ void processLinesBatch(vector<string> &linesBatch, string &outputPath, int threa
     output.close();
 }
 
+void off_load_process(string &output, int &threads)
+{
+    string seq;
+    vector<string> batch;
+
+    while (true)
+    {
+        {
+            unique_lock<mutex> lock(mux);
+
+            while (reads_queue.size() > 0)
+            {
+                seq = reads_queue.front();
+                batch.push_back(seq);
+                reads_queue.pop();
+
+                if (batch.size() == 10000)
+                {
+                    break;
+                }
+            }
+        }
+
+        condition.notify_all();
+
+        if (batch.size() > 0)
+        {
+            processLinesBatch(batch, output, threads);
+            batch.clear();
+        }
+
+        {
+            unique_lock<mutex> lock(mux);
+            if (terminate_threads && reads_queue.size() == 0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+void io_thread(string &file_path)
+{
+    SeqReader reader(file_path);
+    Seq seq;
+    int count = 0;
+
+    while (reader.get_seq(seq))
+    {
+        {
+            unique_lock<mutex> lock(mux);
+            condition.wait(lock, [] { return reads_queue.size() < 50000; });
+            reads_queue.push(seq.data);
+        }
+        count++;
+
+        cout << "Loaded Reads " << count << "       \r" << flush;
+    }
+
+    cout << endl;
+
+    terminate_threads = true;
+}
+
 int main(int argc, char **argv)
 {
     vector<string> batch;
-    string inputPath, outputPath;
+    string input_path, output_path;
     int threads;
-    
-    inputPath = argv[1];
-    outputPath = argv[2];
+
+    input_path = argv[1];
+    output_path = argv[2];
     k_size = stoi(argv[3]);
     threads = stoi(argv[4]);
 
-    cout << "INPUT FILE " << inputPath << endl;
-    cout << "OUTPUT FILE " << outputPath << endl;
+    cout << "INPUT FILE " << input_path << endl;
+    cout << "OUTPUT FILE " << output_path << endl;
     cout << "K_SIZE " << k_size << endl;
     cout << "THREADS " << threads << endl;
 
@@ -127,26 +207,13 @@ int main(int argc, char **argv)
     cout << "Profile Size " << kmer_count_len << endl;
     cout << "Total " << k_size << "-mers " << kmer_inds.size() << endl;
 
-    Seq seq;
-    SeqReader reader(inputPath);
-    ofstream output;
+    ofstream output(output_path, ios::out);
 
-    output.open(outputPath, ios::out);
-    output.close();
+    thread iot(io_thread, ref(input_path));
+    thread process(off_load_process, ref(output_path), ref(threads));
 
-    while (reader.get_seq(seq))
-    {
-        batch.push_back(seq.data);
-
-        if (batch.size() == 10000)
-        {
-            processLinesBatch(batch, outputPath, threads);
-            batch.clear();
-        }
-    }
-
-    processLinesBatch(batch, outputPath, threads);    
-    batch.clear();
+    iot.join();
+    process.join();
 
     return 0;
 }
