@@ -13,8 +13,6 @@
 * New test examples and results with blogs will also be available soon 🔖 
 * We will put a new release as well 👌
 
-
-
 ## Dependencies
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
@@ -29,10 +27,6 @@ LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you wil
 ### C++ requirements
 * GCC version 9.1.0
 * OpenMP 4.5 for multi processing
-
-### Third party programs
-* DSK: https://github.com/GATB/dsk
-    * Add DSK binaries to your PATH variable
 
 ## Downloading LRBinner
 To download LRBinner, you have to clone the LRBinner repository to your machine.
@@ -56,9 +50,6 @@ sh build.sh
 pip install .
 ```
 OR add the program path to your $PATH variable.
-
-## Running the LRBinner
-In order to run LRBinner you are required to provide the reads in FASTQ or FASTA format.
 
 ### Test run data
 
@@ -95,38 +86,30 @@ cd LRBinner
 ### Help
 
 ```
-usage: LRBinner [-h] --reads-path READS_PATH [--threads THREADS]
+usage: LRBinner [-h] --reads-path READS_PATH [--k-size {3,4,5}]
                 [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
-                [--k-mer-vector {3,4,5}] [--max-memory MAX_MEMORY]
                 [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
                 [--ae-hidden AE_HIDDEN] [--min-bin-size MIN_BIN_SIZE]
-                [--bin-iterations BIN_ITERATIONS] [--separate-reads]
-                [--resume] --output <DEST> [--version]
+                [--bin-iterations BIN_ITERATIONS] [--threads THREADS]
+                [--separate-reads] [--resume] --output <DEST> [--version]
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT). Tool utilizes composition and coverage profiles of reads based
 on k-mer frequencies to perform dimension reduction via a deep variational
-auto-encoder. Dimension reduced reads are then clustered using a novel 
+auto-encoder. Dimension reduced reads are then clustered using a novel
 distance histogram based clustering algorithm. Minimum RAM requirement is 9GB.
 
 optional arguments:
   -h, --help            show this help message and exit
   --reads-path READS_PATH, -r READS_PATH
                         Reads path for binning
-  --threads THREADS, -t THREADS
-                        Thread count for computation
+  --k-size {3,4,5}, -k {3,4,5}
+                        k value for k-mer frequency vector. Choose between 3
+                        and 5.
   --bin-size BIN_SIZE, -bs BIN_SIZE
                         Bin size for the coverage histogram.
   --bin-count BIN_COUNT, -bc BIN_COUNT
                         Number of bins for the coverage histogram.
-  --k-mer-vector {3,4,5}, -k {3,4,5}
-                        k value for k-mer frequency vector. Choose between 3
-                        and 5.
-  --max-memory MAX_MEMORY, -m MAX_MEMORY
-                        Default 5000. DSK k-mer counter accepts a max memory
-                        parameter. However, the complete pipeline requires
-                        5GB+ RAM. This is only to make DSK step faster, should
-                        you have more RAM.
   --ae-epochs AE_EPOCHS
                         Epochs for the auto_encoder.
   --ae-dims AE_DIMS     Size of the latent dimension.
@@ -137,6 +120,8 @@ optional arguments:
   --bin-iterations BIN_ITERATIONS, -bit BIN_ITERATIONS
                         Number of iterations for cluster search. Use 0 for
                         exhaustive search.
+  --threads THREADS, -t THREADS
+                        Thread count for computations
   --separate-reads, -sep
                         Flag to separate reads into bins detected. Avaialbe in
                         folder named 'binned'.
