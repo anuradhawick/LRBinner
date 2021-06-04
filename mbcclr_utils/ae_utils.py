@@ -1,11 +1,9 @@
 import numpy as np
 import torch
 from torch import nn, optim
-from torch.nn import functional as F
-from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 import torch.nn.functional as F
 import logging
 from tqdm import tqdm
@@ -24,7 +22,7 @@ def make_data_loader(covs, profs, *, batch_size=1024*10, drop_last=True, shuffle
     dataset = TensorDataset(covs, profs)
 
     return DataLoader(dataset=dataset, batch_size=batch_size, drop_last=drop_last,
-                      shuffle=shuffle, num_workers=1, pin_memory=False)
+                      shuffle=shuffle)
 
 
 class VAE(nn.Module):
@@ -151,8 +149,9 @@ class VAE(nn.Module):
                                      batch_size=data_loader.batch_size * 2,
                                      shuffle=True,
                                      drop_last=True,
-                                     num_workers=data_loader.num_workers,
-                                     pin_memory=data_loader.pin_memory)
+                                    #  num_workers=data_loader.num_workers,
+                                    #  pin_memory=data_loader.pin_memory
+                                     )
 
         for n, (covs_in, profs_in) in enumerate(data_loader):
             covs_in.requires_grad = True
