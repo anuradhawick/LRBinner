@@ -11,7 +11,7 @@ from tqdm import tqdm
 logger = logging.getLogger('LRBinner')
 
 
-def make_data_loader(covs, profs, *, batch_size=1024*10, drop_last=True, shuffle=True):
+def make_data_loader(covs, profs, *, batch_size=1024, drop_last=True, shuffle=True, cuda=False):
     # Scaling profs
     profs = MinMaxScaler().fit_transform(profs)
     covs = MinMaxScaler().fit_transform(covs)
@@ -19,14 +19,15 @@ def make_data_loader(covs, profs, *, batch_size=1024*10, drop_last=True, shuffle
     covs = torch.from_numpy(covs).float()
     profs = torch.from_numpy(profs).float()
 
-    dataset = TensorDataset(covs, profs)
+    n_workers = 4 if cuda else 1
 
+    dataset = TensorDataset(covs, profs)
     return DataLoader(dataset=dataset, batch_size=batch_size, drop_last=drop_last,
-                      shuffle=shuffle)
+                      shuffle=shuffle, pin_memory=cuda, num_workers=n_workers)
 
 
 class VAE(nn.Module):
-    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128]):
+    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128], device):
         super(VAE, self).__init__()
 
         self.cov_size = cov_size
@@ -65,6 +66,9 @@ class VAE(nn.Module):
         self.softplus = nn.Softplus()
         self.softmax = nn.Softmax(dim=1)
         self.dropoutlayer = nn.Dropout(p=self.dropout)
+        self.device = device
+        
+        self.to(self.device)
 
     def _encode(self, tensor):
         tensors = list()
@@ -92,15 +96,18 @@ class VAE(nn.Module):
         row = 0
         with torch.no_grad():
             for covs, profs in data_loader:
+                covs = covs.to(self.device)
+                profs = profs.to(self.device)
+
                 mu, logsigma = self.forward_predict(covs, profs)
-                latent[row: row + len(mu)] = mu
+                latent[row: row + len(mu)] = mu.to("cpu")
                 row += len(mu)
 
         assert row == length
         return latent
 
     def reparameterize(self, mu, logsigma):
-        epsilon = torch.randn(mu.size(0), mu.size(1))
+        epsilon = torch.randn(mu.size(0), mu.size(1), device=self.device)
         epsilon.requires_grad = True
         latent = mu + epsilon * torch.exp(logsigma/2)
 
@@ -149,11 +156,14 @@ class VAE(nn.Module):
                                      batch_size=data_loader.batch_size * 2,
                                      shuffle=True,
                                      drop_last=True,
-                                    #  num_workers=data_loader.num_workers,
-                                    #  pin_memory=data_loader.pin_memory
+                                     num_workers=data_loader.num_workers,
+                                     pin_memory=data_loader.pin_memory
                                      )
 
         for n, (covs_in, profs_in) in enumerate(data_loader):
+            covs_in = covs_in.to(self.device)
+            profs_in = profs_in.to(self.device)
+
             covs_in.requires_grad = True
             profs_in.requires_grad = True
 
@@ -213,19 +223,27 @@ class VAE(nn.Module):
         torch.save(state, save_path)
 
 
-def vae_encode(output, latent_dims, hidden_layers, epochs):
+def vae_encode(output, latent_dims, hidden_layers, epochs, cuda):
     comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
     cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
 
-    vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
-              latent_dims=latent_dims, hidden_layers=hidden_layers)
+    device = "cpu"
 
-    dloader = make_data_loader(cov_profiles, comp_profiles)
+    if cuda:
+        device = "cuda"
+
+    # comp_profiles = torch.from_numpy(comp_profiles).float().to(device)
+    # cov_profiles = torch.from_numpy(cov_profiles).float().to(device)
+
+    vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
+              latent_dims=latent_dims, hidden_layers=hidden_layers, device=device)
+
+    dloader = make_data_loader(cov_profiles, comp_profiles, cuda=cuda)
     vae.trainmodel(
         dloader, save_path=f"{output}/model.pt", nepochs=epochs, batchsteps=[50, 100, 150])
 
     dloader_encode = make_data_loader(
-        cov_profiles, comp_profiles, drop_last=False, shuffle=False)
+        cov_profiles, comp_profiles, drop_last=False, shuffle=False, cuda=cuda)
     latent = vae.encode(dloader_encode)
 
     np.save(f"{output}/latent", latent)

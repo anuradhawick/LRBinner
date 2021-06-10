@@ -6,6 +6,7 @@ import time
 import logging
 from Bio import SeqIO
 import numpy as np
+import torch
 
 from mbcclr_utils import runners_utils
 from mbcclr_utils import ae_utils
@@ -70,9 +71,13 @@ def main():
     parser.add_argument('--separate-reads', '-sep',
                         help="Flag to separate reads into bins detected. Avaialbe in folder named 'binned'.",
                         action='store_true')
+    parser.add_argument('--cuda',
+                        action='store_true',
+                        help='Whether to use CUDA if available.'
+                        )
     parser.add_argument('--resume',
                         action='store_true',
-                        help='Continue from the last step or the binning step (which ever comes first). Can save time needed to run DSK and obtain k-mers.'
+                        help='Continue from the last step or the binning step (which ever comes first). Can save time needed count k-mers.'
                         )
     parser.add_argument('--output', '-o', metavar='<DEST>',
                         help="Output directory", type=str, required=True)
@@ -93,6 +98,7 @@ def main():
     dims = args.ae_dims
     hidden = list(map(int, args.ae_hidden.split(",")))
     binreads = args.separate_reads
+    cuda = args.cuda
     resume = args.resume
     min_cluster_size = max(args.min_bin_size, 1)
     iterations = max(args.bin_iterations, 0)
@@ -164,6 +170,12 @@ def main():
     start_time = time.time()
     logger.info("Command " + " ".join(sys.argv))
 
+    if cuda and torch.cuda.is_available():
+        cuda = True
+        logger.info("CUDA found in system")
+    else:
+        cuda = False
+
     if resume:
         logger.info("Resuming the program from previous checkpoints")
         data = runners_utils.load_checkpoints(checkpoints_path)
@@ -231,7 +243,8 @@ def main():
             output,
             dims,
             hidden,
-            epochs)
+            epochs,
+            cuda)
             
         data['ae_dims'] = dims
         data['ae_hidden'] = hidden
