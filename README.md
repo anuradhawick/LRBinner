@@ -9,6 +9,10 @@
 
 # :exclamation:Notice :stop_sign:
 
+* Training on CUDA is now available!
+
+# :exclamation:Notice :stop_sign:
+
 * A new upadate will be available end of June 2021 with much faster vectorization and GPU support. Stay tuned 😄
 * New test examples and results with blogs will also be available soon 🔖 
 * We will put a new release as well 👌
@@ -91,7 +95,8 @@ usage: LRBinner [-h] --reads-path READS_PATH [--k-size {3,4,5}]
                 [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
                 [--ae-hidden AE_HIDDEN] [--min-bin-size MIN_BIN_SIZE]
                 [--bin-iterations BIN_ITERATIONS] [--threads THREADS]
-                [--separate-reads] [--resume] --output <DEST> [--version]
+                [--separate-reads] [--cuda] [--resume] --output <DEST>
+                [--version]
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT). Tool utilizes composition and coverage profiles of reads based
@@ -125,9 +130,9 @@ optional arguments:
   --separate-reads, -sep
                         Flag to separate reads into bins detected. Avaialbe in
                         folder named 'binned'.
+  --cuda                Whether to use CUDA if available.
   --resume              Continue from the last step or the binning step (which
-                        ever comes first). Can save time needed to run DSK and
-                        obtain k-mers.
+                        ever comes first). Can save time needed count k-mers.
   --output <DEST>, -o <DEST>
                         Output directory
   --version, -v         Show version.
