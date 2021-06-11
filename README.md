@@ -13,7 +13,7 @@
 
 # :exclamation:Notice :stop_sign:
 
-* A new upadate will be available end of June 2021 with much faster vectorization and GPU support. Stay tuned 😄
+* A new update will be available end of June 2021 with much faster vectorization and GPU support. Stay tuned 😄
 * New test examples and results with blogs will also be available soon 🔖 
 * We will put a new release as well 👌
 
