@@ -140,12 +140,29 @@ optional arguments:
 ```
 * Output path is the foldername that you wish the results to be in.
 * Specify the number of threads
-<!-- 
+
 ## Citation
 
+```bibtex
+@InProceedings{wickramarachchi_et_al:LIPIcs.WABI.2021.11,
+  author =	{Wickramarachchi, Anuradha and Lin, Yu},
+  title =	{{LRBinner: Binning Long Reads in Metagenomics Datasets}},
+  booktitle =	{21st International Workshop on Algorithms in Bioinformatics (WABI 2021)},
+  pages =	{11:1--11:18},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-200-6},
+  ISSN =	{1868-8969},
+  year =	{2021},
+  volume =	{201},
+  editor =	{Carbone, Alessandra and El-Kebir, Mohammed},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/opus/volltexte/2021/14364},
+  URN =		{urn:nbn:de:0030-drops-143644},
+  doi =		{10.4230/LIPIcs.WABI.2021.11},
+  annote =	{Keywords: Metagenomics binning, long reads, machine learning, clustering}
+}
 ```
-TBD
-``` -->
 
 ## :exclamation:Note :stop_sign:
 
