@@ -7,13 +7,10 @@
 ![GitHub](https://img.shields.io/github/license/anuradhawick/LRBinner)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/LRBinner)
 
-# :exclamation:Notice :stop_sign:
+## Updates
 
+* Reference based binning is now available (check Usage section)
 * Training on CUDA is now available!
-
-# :exclamation:Notice :stop_sign:
-
-* A new update will be available end of June 2021 with much faster vectorization and GPU support. Stay tuned 😄
 * New test examples and results with blogs will also be available soon 🔖 
 * We will put a new release as well 👌
 
@@ -55,7 +52,7 @@ pip install .
 ```
 OR add the program path to your $PATH variable.
 
-### Test run data
+## Test run data
 
 Extract test data from [here](https://anu365-my.sharepoint.com/:f:/g/personal/u6776114_anu_edu_au/EnV-rUq01pRHl1lH4Y8SaSwBwVVMKNAptbA6YW8RWX6Pqw?e=tDgy9v);
 
@@ -63,7 +60,7 @@ Extract test data from [here](https://anu365-my.sharepoint.com/:f:/g/personal/u6
 LRBinner -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 -bit 0 -bs 10 -bc 10
 ```
 
-### Test run results
+## Test run results
 
 Note that the results could vary due to slight sampling differences. Evaluations can be done using the `eval.py` script.
 
@@ -79,6 +76,28 @@ Precision            96.77
 Recall               96.77
 F1-Score             96.77
 ```
+## Usage
+### Constraints file format
+
+Provide a TSV file containing read index and the taxonomic label. See the following example. An example usecase would be to sample few reads (10000-50000) and annotate them. Then prepare a TSV file as below and use in binning.
+
+```
+107885  Escherichia_coli
+188789  Haemophilus_parainfluenzae
+181635  Haemophilus_parainfluenzae
+388619  Streptomyces_scabiei
+27303   Bacillus_cereus
+122292  Escherichia_coli
+20565   Bacillus_cereus
+99539   Escherichia_coli
+300860  Streptomyces_scabiei
+294442  Streptomyces_scabiei
+```
+Use flag `--constraints` or `-c` to provide this file to LRBinner.
+
+### Parameters
+
+Our manuscript presents results with `-k 3` i.e. using 3-mers. Internal parameters are not yet set for other `-k` choices. We are working on that. :smile:
 
 ### Available LRBinner Commands 
 
@@ -94,9 +113,9 @@ usage: LRBinner [-h] --reads-path READS_PATH [--k-size {3,4,5}]
                 [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
                 [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
                 [--ae-hidden AE_HIDDEN] [--min-bin-size MIN_BIN_SIZE]
-                [--bin-iterations BIN_ITERATIONS] [--threads THREADS]
-                [--separate-reads] [--cuda] [--resume] --output <DEST>
-                [--version]
+                [--bin-iterations BIN_ITERATIONS] [--constraints CONSTRAINTS]
+                [--threads THREADS] [--separate-reads] [--cuda] [--resume]
+                --output <DEST> [--version]
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT). Tool utilizes composition and coverage profiles of reads based
@@ -125,6 +144,8 @@ optional arguments:
   --bin-iterations BIN_ITERATIONS, -bit BIN_ITERATIONS
                         Number of iterations for cluster search. Use 0 for
                         exhaustive search.
+  --constraints CONSTRAINTS, -c CONSTRAINTS
+                        Set of constraints (must-link and cannot-link)
   --threads THREADS, -t THREADS
                         Thread count for computations
   --separate-reads, -sep
@@ -136,7 +157,6 @@ optional arguments:
   --output <DEST>, -o <DEST>
                         Output directory
   --version, -v         Show version.
-
 ```
 * Output path is the foldername that you wish the results to be in.
 * Specify the number of threads
