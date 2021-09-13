@@ -167,6 +167,7 @@ def main():
         data['ae_dims'] = dims
         data['ae_hidden'] = hidden
         data['epochs'] = epochs
+        data['constraints'] = constraints
 
         data['completed'] = set()
 
@@ -250,6 +251,7 @@ def main():
                    data['ae_dims'] != dims or
                    data['ae_hidden'] != hidden or
                    data['epochs'] != epochs or
+                   data['constraints'] != constraints or
                    data_changed) or not resume:
 
         logger.info(f"VAE Training information")
@@ -268,6 +270,7 @@ def main():
         data['ae_dims'] = dims
         data['ae_hidden'] = hidden
         data['epochs'] = epochs
+        data['constraints'] = constraints
         data['completed'].add('encode')
 
         runners_utils.checkpoint(data, checkpoints_path)

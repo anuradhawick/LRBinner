@@ -284,9 +284,6 @@ def vae_encode(output, latent_dims, hidden_layers, epochs, constraints, cuda):
     if cuda:
         device = "cuda"
 
-    # comp_profiles = torch.from_numpy(comp_profiles).float().to(device)
-    # cov_profiles = torch.from_numpy(cov_profiles).float().to(device)
-
     vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
               latent_dims=latent_dims, hidden_layers=hidden_layers, constraints=constraints, device=device)
 
