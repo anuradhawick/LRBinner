@@ -7,6 +7,9 @@ from sklearn.preprocessing import MinMaxScaler
 import torch.nn.functional as F
 import logging
 from tqdm import tqdm
+import itertools
+import random
+from collections import defaultdict
 
 logger = logging.getLogger('LRBinner')
 
@@ -18,16 +21,17 @@ def make_data_loader(covs, profs, *, batch_size=1024, drop_last=True, shuffle=Tr
 
     covs = torch.from_numpy(covs).float()
     profs = torch.from_numpy(profs).float()
+    idx = torch.arange(len(covs))
 
     n_workers = 4 if cuda else 1
 
-    dataset = TensorDataset(covs, profs)
+    dataset = TensorDataset(covs, profs, idx)
     return DataLoader(dataset=dataset, batch_size=batch_size, drop_last=drop_last,
                       shuffle=shuffle, pin_memory=cuda, num_workers=n_workers)
 
 
 class VAE(nn.Module):
-    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128], device):
+    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128], constraints=None, device='cpu'):
         super(VAE, self).__init__()
 
         self.cov_size = cov_size
@@ -66,6 +70,7 @@ class VAE(nn.Module):
         self.softplus = nn.Softplus()
         self.softmax = nn.Softmax(dim=1)
         self.dropoutlayer = nn.Dropout(p=self.dropout)
+        self.constraints = constraints
         self.device = device
         
         self.to(self.device)
@@ -87,7 +92,7 @@ class VAE(nn.Module):
     def encode(self, data_loader):
         self.eval()
 
-        covs, profs = data_loader.dataset.tensors
+        covs, profs, indices = data_loader.dataset.tensors
         length = len(covs)
 
         # from vamb
@@ -95,7 +100,7 @@ class VAE(nn.Module):
 
         row = 0
         with torch.no_grad():
-            for covs, profs in data_loader:
+            for covs, profs, indices in data_loader:
                 covs = covs.to(self.device)
                 profs = profs.to(self.device)
 
@@ -160,7 +165,7 @@ class VAE(nn.Module):
                                      pin_memory=data_loader.pin_memory
                                      )
 
-        for n, (covs_in, profs_in) in enumerate(data_loader):
+        for n, (covs_in, profs_in, indices) in enumerate(data_loader):
             covs_in = covs_in.to(self.device)
             profs_in = profs_in.to(self.device)
 
@@ -172,7 +177,7 @@ class VAE(nn.Module):
             covs_out, profs_out, mu, logsigma = self(covs_in, profs_in)
 
             loss, e_cov, e_comp, kld = self.calc_loss(
-                covs_in, covs_out, profs_in, profs_out, mu, logsigma)
+                covs_in, covs_out, profs_in, profs_out, mu, logsigma, indices)
 
             loss.backward()
             optimizer.step()
@@ -186,7 +191,54 @@ class VAE(nn.Module):
 
         return data_loader
 
-    def calc_loss(self, covs_in, covs_out, profs_in, profs_out, mu, logsigma):
+    def calc_loss(self, covs_in, covs_out, profs_in, profs_out, mu, logsigma, indices):
+        loss_ml = 0
+        loss_mnl = 0
+        indices = indices.cpu().numpy()
+
+        if self.constraints is not None:
+            idx_local_map = {i:n for n, i in enumerate(indices)}
+            idx_groups = defaultdict(list)
+
+            for i in indices:
+                if i in self.constraints:
+                    idx_groups[self.constraints[i]].append(idx_local_map[i])
+
+            must_link_pairs = []
+            must_not_link_pairs = []
+
+            for k, ml in idx_groups.items():
+                if len(ml) >= 2:
+                    pairs = list(itertools.combinations(ml, 2))
+                    must_link_pairs.extend(pairs)
+            
+            if len(must_link_pairs) > len(indices):
+                must_link_pairs = random.sample(must_link_pairs, len(indices))
+
+            for n, (k1, ml1) in enumerate(idx_groups.items()):
+                for m, (k2, ml2) in enumerate(idx_groups.items()):
+                    if n == m:
+                        break
+
+                    if len(ml1) > 100:
+                        ml1 = random.sample(ml1, 100)
+                    if len(ml2) > 100:
+                        ml2 = random.sample(ml2, 100)
+
+                    for m1 in ml1:
+                        for m2 in ml2:
+                            must_not_link_pairs.append([m1, m2])
+            
+            must_link_pairs = np.array(must_link_pairs)
+            must_not_link_pairs = np.array(must_not_link_pairs)
+
+            if len(must_link_pairs) > 0:
+                # loss_ml = F.logsigmoid((mu[must_link_pairs.T[0]] * mu[must_link_pairs.T[1]]).sum(-1)).mean()
+                loss_ml = (mu[must_link_pairs.T[0]] - mu[must_link_pairs.T[1]]).pow(2).sum(dim=1).mean()
+            if len(must_link_pairs) > 0:
+                # loss_mnl = F.logsigmoid(-(mu[must_not_link_pairs.T[0]] * mu[must_not_link_pairs.T[1]]).sum(-1)).mean()
+                loss_mnl = torch.max(torch.tensor(0).to(self.device), 10 - (mu[must_not_link_pairs.T[0]] - mu[must_not_link_pairs.T[1]]).pow(2).sum(dim=1).mean())
+
         e_cov = (covs_out - covs_in).pow(2).sum(dim=1).mean()
         e_cov_weight = 0.1
 
@@ -197,7 +249,7 @@ class VAE(nn.Module):
                       logsigma.exp()).sum(dim=1).mean()
         kld_weight = 1 / (self.prof_size * self.beta)
 
-        loss = e_cov * e_cov_weight + e_comp * e_comp_weight + kld * kld_weight
+        loss = e_cov * e_cov_weight + e_comp * e_comp_weight + kld * kld_weight + 0.5 * loss_ml + 5 * loss_mnl
 
         return loss, e_cov, e_comp, kld
 
@@ -223,7 +275,7 @@ class VAE(nn.Module):
         torch.save(state, save_path)
 
 
-def vae_encode(output, latent_dims, hidden_layers, epochs, cuda):
+def vae_encode(output, latent_dims, hidden_layers, epochs, constraints, cuda):
     comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
     cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
 
@@ -236,7 +288,7 @@ def vae_encode(output, latent_dims, hidden_layers, epochs, cuda):
     # cov_profiles = torch.from_numpy(cov_profiles).float().to(device)
 
     vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
-              latent_dims=latent_dims, hidden_layers=hidden_layers, device=device)
+              latent_dims=latent_dims, hidden_layers=hidden_layers, constraints=constraints, device=device)
 
     dloader = make_data_loader(cov_profiles, comp_profiles, cuda=cuda)
     vae.trainmodel(

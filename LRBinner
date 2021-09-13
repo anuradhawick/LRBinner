@@ -63,6 +63,11 @@ def main():
                         type=int,
                         required=False,
                         default=1000)
+    parser.add_argument('--constraints', '-c',
+                        help="Set of constraints (must-link and cannot-link)",
+                        type=str,
+                        default=None,
+                        required=False)
     parser.add_argument('--threads', '-t',
                         help="Thread count for computations",
                         type=int,
@@ -91,6 +96,7 @@ def main():
 
     reads_path = args.reads_path
     threads = args.threads
+    constraints = args.constraints
     bin_size = args.bin_size
     bin_count = args.bin_count
     k_size = args.k_size
@@ -170,6 +176,18 @@ def main():
     start_time = time.time()
     logger.info("Command " + " ".join(sys.argv))
 
+    if constraints is not None:
+        constraints_dict = {}
+
+        logger.debug("Loading constraints ")
+        for line in open(constraints):
+            idx, label = line.strip().split("\t")
+            idx = int(idx)
+
+            constraints_dict[idx] = label
+
+        constraints = constraints_dict
+
     if cuda and torch.cuda.is_available():
         cuda = True
         logger.info("CUDA found in system")
@@ -228,7 +246,7 @@ def main():
 
         logger.info("Profiles saving as numpy arrays complete")
 
-    if resume and ("encode" not in data['completed'] or
+    if True or resume and ("encode" not in data['completed'] or
                    data['ae_dims'] != dims or
                    data['ae_hidden'] != hidden or
                    data['epochs'] != epochs or
@@ -244,6 +262,7 @@ def main():
             dims,
             hidden,
             epochs,
+            constraints,
             cuda)
             
         data['ae_dims'] = dims
@@ -254,8 +273,12 @@ def main():
         runners_utils.checkpoint(data, checkpoints_path)
         logger.info(f"VAE Training complete")
 
-    cluster_utils.perform_binning(
-        output, iterations, min_cluster_size, binreads, reads_path)
+    if constraints is None:
+        cluster_utils.perform_binning(
+            output, iterations, min_cluster_size, binreads, reads_path)
+    else:
+        cluster_utils.perform_binning_HDBSCAN(
+            output, min_cluster_size, binreads, reads_path)
 
     end_time = time.time()
     time_taken = end_time - start_time
