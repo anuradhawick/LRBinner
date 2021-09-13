@@ -18,12 +18,20 @@
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
 ### Python dependencies
+Essential libraries
+
 * numpy 1.16.4 
 * scipy 1.3.0 
 * seaborn 0.9.0
 * h5py 2.9.0
 * tabulate 0.8.7
 * pytorch 1.4.0
+
+Essential of using constraints
+
+* umap-learn
+* HDBSCAN
+
 
 ### C++ requirements
 * GCC version 9.1.0
