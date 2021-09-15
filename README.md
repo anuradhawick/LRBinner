@@ -89,6 +89,9 @@ F1-Score             96.77
 
 Provide a TSV file containing read index and the taxonomic label. See the following example. An example usecase would be to sample few reads (10000-50000) and annotate them. Then prepare a TSV file as below and use in binning.
 
+Must-link - reads from same taxa
+Cannot-link - reads from different taxa
+
 ```
 107885  Escherichia_coli
 188789  Haemophilus_parainfluenzae
