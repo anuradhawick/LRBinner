@@ -394,6 +394,23 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
     comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
     cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
 
+    # clf = RandomForestClassifier(max_depth=2, random_state=0, n_jobs=8)
+
+    # X = []
+    # y = []
+
+    # for n, (k, rs) in enumerate(clusters_output.items()):
+    #     for r in rs:
+    #         classified_reads.append(r)
+    #         X.append(np.concatenate(
+    #             [comp_profiles[r], cov_profiles[r]], axis=0))
+    #         y.append(k)
+    # X = np.array(X)
+    # y = np.array(y)
+    # clf.fit(X, y) 
+    # classified_reads = set(classified_reads)
+        
+
     for k, rs in clusters_output.items():
         vecs = []
         for r in rs:
@@ -426,6 +443,12 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
 
         if best_c is not None:
             clusters_output[best_c].append(r)
+
+    # unclassified_data = np.concatenate([comp_profiles[list(unclassified_reads)], cov_profiles[list(unclassified_reads)]], axis=1)
+    # preds = clf.predict(unclassified_data)
+    # for p, r in zip(preds, unclassified_reads):
+    #     clusters_output[p].append(r)
+
 
     logger.info(f"Binning complete with {len(clusters_output)} bins")
     pickle.dump(clusters_output, open(f"{output}/binning_result.pkl", "wb+"))
