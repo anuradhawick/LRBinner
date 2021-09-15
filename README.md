@@ -108,7 +108,8 @@ Use flag `--constraints` or `-c` to provide this file to LRBinner.
 
 ### Parameters
 
-Our manuscript presents results with `-k 3` i.e. using 3-mers. Internal parameters are not yet set for other `-k` choices. We are working on that. :smile:
+Our manuscript presents results with `-k 3` i.e. using 3-mers. Use `-k 4` for tetramer based binning.
+Internal parameters are not yet set for `-k 5` choice. We are working on that. :smile:
 
 ### Available LRBinner Commands 
 
