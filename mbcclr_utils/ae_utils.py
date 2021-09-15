@@ -10,8 +10,13 @@ from tqdm import tqdm
 import itertools
 import random
 from collections import defaultdict
+import os
+import json
 
 logger = logging.getLogger('LRBinner')
+
+h_params = open(os.path.dirname(__file__) + '/hyper_params.json')
+h_params = json.load(h_params)
 
 
 def make_data_loader(covs, profs, *, batch_size=1024, drop_last=True, shuffle=True, cuda=False):
@@ -44,8 +49,6 @@ class VAE(nn.Module):
         self.encodernorms = nn.ModuleList()
         self.decoderlayers = nn.ModuleList()
         self.decodernorms = nn.ModuleList()
-
-        self.beta = 5
 
         # Encoding layers
         for nin, nout in zip([self.cov_size + self.prof_size] + self.hidden_layers, self.hidden_layers):
@@ -240,14 +243,14 @@ class VAE(nn.Module):
                 loss_mnl = torch.max(torch.tensor(0).to(self.device), 10 - (mu[must_not_link_pairs.T[0]] - mu[must_not_link_pairs.T[1]]).pow(2).sum(dim=1).mean())
 
         e_cov = (covs_out - covs_in).pow(2).sum(dim=1).mean()
-        e_cov_weight = 0.1
+        e_cov_weight = h_params[str(self.prof_size)]["e_cov_weight"]
 
         e_comp = (profs_out - profs_in).pow(2).sum(dim=1).mean()
-        e_comp_weight = 1
+        e_comp_weight = h_params[str(self.prof_size)]["e_comp_weight"]
 
         kld = -0.5 * (1 + logsigma - mu.pow(2) -
                       logsigma.exp()).sum(dim=1).mean()
-        kld_weight = 1 / (self.prof_size * self.beta)
+        kld_weight = h_params[str(self.prof_size)]["kld_weight"]
 
         loss = e_cov * e_cov_weight + e_comp * e_comp_weight + kld * kld_weight + 0.5 * loss_ml + 5 * loss_mnl
 
@@ -275,6 +278,10 @@ class VAE(nn.Module):
         torch.save(state, save_path)
 
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def vae_encode(output, latent_dims, hidden_layers, epochs, constraints, cuda):
     comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
     cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
@@ -286,6 +293,9 @@ def vae_encode(output, latent_dims, hidden_layers, epochs, constraints, cuda):
 
     vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
               latent_dims=latent_dims, hidden_layers=hidden_layers, constraints=constraints, device=device)
+
+    logger.debug(f"Model param count = {count_parameters(vae)}") 
+    logger.debug(vae)
 
     dloader = make_data_loader(cov_profiles, comp_profiles, cuda=cuda)
     vae.trainmodel(

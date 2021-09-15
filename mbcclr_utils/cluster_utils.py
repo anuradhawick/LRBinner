@@ -136,6 +136,14 @@ def get_cluster_center(matrix, seed):
     ratio, chosen_peak, chosen_minima, chosen_tail = find_valley_ratio(
         densities)
 
+    # To make my life easy debugging I'm gonna keep this!
+    # import matplotlib.pyplot as plt
+    # print(distances.sort())
+    # plt.figure()
+    # plt.plot(np.arange(0, 2, _DELTA_X), calc_densities(torch.histc(distances, math.ceil(2/_DELTA_X), 0, 2)))
+    # plt.show()
+    # plt.close()
+
     if not chosen_peak or ratio > 0.5:
         return False, False, False, False, False
 
