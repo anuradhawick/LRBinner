@@ -10,8 +10,11 @@ import logging
 import os
 from Bio import SeqIO
 
-logger = logging.getLogger('LRBinner')
+# TODO separate clustering unbinned 
+# points into a different function
 
+logger = logging.getLogger('LRBinner')
+EPS = 1e-3
 # start code from vamb
 
 
@@ -358,18 +361,26 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
         for k, f in bin_files.items():
             f.close()
 
-def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
+def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
     import umap
     from hdbscan import HDBSCAN
+    from sklearn.neighbors import NearestNeighbors
     
     latent = np.load(f'{output}/latent.npy')
     logger.info("Clustering using HDBSCAN running")
 
-    sidx = random.sample(range(len(latent)), 50000)
+    # compute nearest neighbors for balances sampling
+    nbrs = NearestNeighbors(n_neighbors=26, algorithm='auto', n_jobs=threads).fit(latent)
+    distances, _ = nbrs.kneighbors(latent)
+    mean_distances = distances[:,1:].mean(axis=1) * EPS
+    
+    logger.debug("Trying to sample 50000 data points probabilistically")
+    sidx = list(set(random.choices(range(len(latent)), k=50000, weights=mean_distances)))
+    logger.debug(f"Sampled {len(sidx)} unique points")
     sampled_data = latent[sidx]
 
-    embds = umap.UMAP().fit_transform(sampled_data)
-    labels = HDBSCAN(min_cluster_size=500).fit_predict(embds)
+    # embds = umap.UMAP().fit_transform(sampled_data)
+    labels = HDBSCAN(min_cluster_size=500).fit_predict(sampled_data)
 
     clusters = defaultdict(list)
 
@@ -377,7 +388,7 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
         if c != -1:
             clusters[c].append(i)
 
-    logger.info(f"Detected {len(clusters)}")
+    logger.info(f"HDBSCAN detected {len(clusters)}")
 
     clusters_output = {}
 
@@ -386,6 +397,7 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
             clusters_output[len(clusters_output)] = list(map(int, v))
     logger.info(
         f"Detected {len(clusters_output)} clusters with more than {min_cluster_size} points")
+    
     cluster_profiles = {}
     classified_reads = []
 
@@ -393,23 +405,6 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
 
     comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
     cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
-
-    # clf = RandomForestClassifier(max_depth=2, random_state=0, n_jobs=8)
-
-    # X = []
-    # y = []
-
-    # for n, (k, rs) in enumerate(clusters_output.items()):
-    #     for r in rs:
-    #         classified_reads.append(r)
-    #         X.append(np.concatenate(
-    #             [comp_profiles[r], cov_profiles[r]], axis=0))
-    #         y.append(k)
-    # X = np.array(X)
-    # y = np.array(y)
-    # clf.fit(X, y) 
-    # classified_reads = set(classified_reads)
-        
 
     for k, rs in clusters_output.items():
         vecs = []
@@ -443,12 +438,6 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads):
 
         if best_c is not None:
             clusters_output[best_c].append(r)
-
-    # unclassified_data = np.concatenate([comp_profiles[list(unclassified_reads)], cov_profiles[list(unclassified_reads)]], axis=1)
-    # preds = clf.predict(unclassified_data)
-    # for p, r in zip(preds, unclassified_reads):
-    #     clusters_output[p].append(r)
-
 
     logger.info(f"Binning complete with {len(clusters_output)} bins")
     pickle.dump(clusters_output, open(f"{output}/binning_result.pkl", "wb+"))

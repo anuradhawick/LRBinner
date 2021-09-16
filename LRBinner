@@ -4,7 +4,6 @@ import os
 import sys
 import time
 import logging
-from Bio import SeqIO
 import numpy as np
 import torch
 
@@ -281,7 +280,7 @@ def main():
             output, iterations, min_cluster_size, binreads, reads_path)
     else:
         cluster_utils.perform_binning_HDBSCAN(
-            output, min_cluster_size, binreads, reads_path)
+            output, min_cluster_size, binreads, reads_path, threads)
 
     end_time = time.time()
     time_taken = end_time - start_time
