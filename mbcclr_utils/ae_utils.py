@@ -27,7 +27,7 @@ def make_data_loader(covs, profs, *, batch_size=1024, drop_last=True, shuffle=Tr
 
 
 class VAE(nn.Module):
-    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128], device):
+    def __init__(self, cov_size, prof_size, *, latent_dims=8, hidden_layers=[128, 128], device="cpu"):
         super(VAE, self).__init__()
 
         self.cov_size = cov_size
