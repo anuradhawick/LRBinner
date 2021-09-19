@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cpath=$(pwd)
 [ -d mbcclr_utils/bin ] && rm -r mbcclr_utils/bin
 mkdir mbcclr_utils/bin    
 
@@ -8,12 +9,14 @@ mkdir mbcclr_utils/bin
 wget -O auxiliary/FragGeneScan1.31.tar.gz https://sourceforge.net/projects/fraggenescan/files/FragGeneScan1.31.tar.gz
 tar -xzf auxiliary/FragGeneScan1.31.tar.gz -C auxiliary/ && rm auxiliary/FragGeneScan1.31.tar.gz
 cd auxiliary/FragGeneScan1.31 && make clean && make fgs && cd ../..
+cd $cpath
 
 [ -d auxiliary/hmmer-3.3.2 ] && rm -r auxiliary/hmmer-3.3.2
 
 wget -O auxiliary/hmmer.tar.gz http://eddylab.org/software/hmmer/hmmer.tar.gz
 tar -xzf auxiliary/hmmer.tar.gz -C auxiliary/ && rm auxiliary/hmmer.tar.gz
 cd auxiliary/hmmer-3.3.2 && ./configure && make && cd ../..
+cd $cpath
 
 case $1 in
 
