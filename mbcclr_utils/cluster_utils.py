@@ -10,8 +10,11 @@ import logging
 import os
 from Bio import SeqIO
 
-logger = logging.getLogger('LRBinner')
+# TODO separate clustering unbinned 
+# points into a different function
 
+logger = logging.getLogger('LRBinner')
+EPS = 1e-3
 # start code from vamb
 
 
@@ -135,6 +138,14 @@ def get_cluster_center(matrix, seed):
     densities = calc_densities(histogram)
     ratio, chosen_peak, chosen_minima, chosen_tail = find_valley_ratio(
         densities)
+
+    # To make my life easy debugging I'm gonna keep this!
+    # import matplotlib.pyplot as plt
+    # print(distances.sort())
+    # plt.figure()
+    # plt.plot(np.arange(0, 2, _DELTA_X), calc_densities(torch.histc(distances, math.ceil(2/_DELTA_X), 0, 2)))
+    # plt.show()
+    # plt.close()
 
     if not chosen_peak or ratio > 0.5:
         return False, False, False, False, False
@@ -265,6 +276,128 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
             clusters_output[len(clusters_output)] = list(map(int, v))
     logger.info(
         f"Detected {len(clusters_output)} clusters with more than {min_cluster_size} points")
+    cluster_profiles = {}
+    classified_reads = []
+
+    logger.info("Building profiles")
+
+    comp_profiles = np.load(f"{output}/profiles/com_profs.npy")
+    cov_profiles = np.load(f"{output}/profiles/cov_profs.npy")
+
+    for k, rs in clusters_output.items():
+        vecs = []
+        for r in rs:
+            classified_reads.append(r)
+            vecs.append(np.concatenate(
+                [comp_profiles[r], cov_profiles[r]], axis=0))
+        vecs = np.array(vecs)
+        cluster_profiles[k] = {
+            'mean': vecs.mean(axis=0),
+            'std': vecs.std(axis=0),
+        }
+    classified_reads = set(classified_reads)
+
+    all_reads = set(range(len(comp_profiles)))
+    unclassified_reads = all_reads - classified_reads
+
+    logger.debug(f"Unclassified points to cluster {len(unclassified_reads)}")
+    logger.info(f"Binning unclassified reads")
+    for r in tqdm(unclassified_reads):
+        max_p = float('-inf')
+        best_c = None
+
+        for k, v in cluster_profiles.items():
+            p = normal(np.concatenate(
+                [comp_profiles[r], cov_profiles[r]], axis=0), v['mean'], v['std'])
+
+            if p > max_p:
+                max_p = p
+                best_c = k
+
+        if best_c is not None:
+            clusters_output[best_c].append(r)
+
+    logger.info(f"Binning complete with {len(clusters_output)} bins")
+    pickle.dump(clusters_output, open(f"{output}/binning_result.pkl", "wb+"))
+
+    # separating reads into bins
+    if binreads:
+        bin_files = {}
+    read_bin = {}
+
+    if binreads:
+        if os.path.isdir(f"{output}/binned_reads"):
+            os.rmdir(f"{output}/binned_reads")
+
+        if not os.path.isdir(f"{output}/binned_reads"):
+            os.makedirs(f"{output}/binned_reads")
+
+    for k, v in clusters_output.items():
+        if binreads:
+            if not os.path.isdir(f"{output}/bin-{k}/"):
+                os.makedirs(f"{output}/bin-{k}/")
+
+            bin_files[k] = open(f"{output}/bin-{k}/reads.fasta", "w+")
+
+        for r in v:
+            read_bin[r] = k
+
+    binout = open(f"{output}/bins.txt", "w+")
+    lenout = open(f"{output}/lengths.txt", "w+")
+    fmt = "fasta" if reads.split(
+        '.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
+
+    for r, record in enumerate(SeqIO.parse(reads, fmt)):
+        binout.write(f"{read_bin[r]}\n")
+        lenout.write(f"{len(record.seq)}\n")
+        if binreads:
+            bin_files[read_bin[r]].write(f">read-{r}\n")
+            bin_files[read_bin[r]].write(f"{record.seq}\n")
+
+    binout.close()
+    lenout.close()
+
+    if binreads:
+        for k, f in bin_files.items():
+            f.close()
+
+def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
+    import umap
+    from hdbscan import HDBSCAN
+    from sklearn.neighbors import NearestNeighbors
+    
+    latent = np.load(f'{output}/latent.npy')
+    logger.info("Clustering using HDBSCAN running")
+
+    # compute nearest neighbors for balances sampling
+    nbrs = NearestNeighbors(n_neighbors=26, algorithm='auto', n_jobs=threads).fit(latent)
+    distances, _ = nbrs.kneighbors(latent)
+    mean_distances = distances[:,1:].mean(axis=1) * EPS
+    
+    logger.debug("Trying to sample 50000 data points probabilistically")
+    sidx = list(set(random.choices(range(len(latent)), k=50000, weights=mean_distances)))
+    logger.debug(f"Sampled {len(sidx)} unique points")
+    sampled_data = latent[sidx]
+
+    # embds = umap.UMAP().fit_transform(sampled_data)
+    labels = HDBSCAN(min_cluster_size=500).fit_predict(sampled_data)
+
+    clusters = defaultdict(list)
+
+    for i, c in zip(sidx, labels):
+        if c != -1:
+            clusters[c].append(i)
+
+    logger.info(f"HDBSCAN detected {len(clusters)}")
+
+    clusters_output = {}
+
+    for k, v in clusters.items():
+        if len(v) > 50000 * min_cluster_size/len(latent):
+            clusters_output[len(clusters_output)] = list(map(int, v))
+    logger.info(
+        f"Detected {len(clusters_output)} clusters with more than {min_cluster_size} points")
+    
     cluster_profiles = {}
     classified_reads = []
 

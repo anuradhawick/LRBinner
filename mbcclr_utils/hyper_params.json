@@ -1,0 +1,20 @@
+{
+    "32": {
+        "_comment": "-k 3 :This parameters are the ones used in paper",
+        "kld_weight": 0.00625,
+        "e_cov_weight": 0.1,
+        "e_comp_weight": 1
+    },
+    "136": {
+        "_comment": "-k 4 :Tuned for the best performance of set_1 dataset from paper",
+        "kld_weight": 0.01,
+        "e_cov_weight": 0.1,
+        "e_comp_weight": 1
+    },
+    "512": {
+        "_comment": "-k 5 :I am yet to do this part (following params are only placeholders). I suspect this might be a good result maker",
+        "kld_weight": 0.01,
+        "e_cov_weight": 0.1,
+        "e_comp_weight": 1
+    }
+}

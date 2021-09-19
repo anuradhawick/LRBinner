@@ -8,3 +8,10 @@ __pycache__/
 *.so
 .vscode
 test*
+
+# auxiliary folders
+auxiliary/FragGeneScan1.31/
+auxiliary/hmmer-3.3.2
+
+# OSX
+.DS_Store
