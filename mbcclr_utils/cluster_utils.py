@@ -1,5 +1,6 @@
+from typing import Counter
 import numpy as np
-from collections import defaultdict
+from collections import defaultdict, Counter
 import torch
 import matplotlib.pyplot as plt
 import math
@@ -9,6 +10,7 @@ from tqdm import tqdm
 import logging
 import os
 from Bio import SeqIO
+import shutil
 
 # TODO separate clustering unbinned 
 # points into a different function
@@ -327,18 +329,12 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
 
     if binreads:
         if os.path.isdir(f"{output}/binned_reads"):
-            os.rmdir(f"{output}/binned_reads")
+            shutil.rmtree(f"{output}/binned_reads")
 
         if not os.path.isdir(f"{output}/binned_reads"):
             os.makedirs(f"{output}/binned_reads")
 
     for k, v in clusters_output.items():
-        if binreads:
-            if not os.path.isdir(f"{output}/bin-{k}/"):
-                os.makedirs(f"{output}/bin-{k}/")
-
-            bin_files[k] = open(f"{output}/bin-{k}/reads.fasta", "w+")
-
         for r in v:
             read_bin[r] = k
 
@@ -351,6 +347,8 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
         binout.write(f"{read_bin[r]}\n")
         lenout.write(f"{len(record.seq)}\n")
         if binreads:
+            if read_bin[r] not in bin_files:
+                bin_files[read_bin[r]] = open(f"{output}/binned_reads/Bin-{read_bin[r]}.fasta", "w+")
             bin_files[read_bin[r]].write(f">read-{r}\n")
             bin_files[read_bin[r]].write(f"{record.seq}\n")
 
@@ -362,7 +360,7 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
             f.close()
 
 def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
-    import umap
+    # import umap
     from hdbscan import HDBSCAN
     from sklearn.neighbors import NearestNeighbors
     
@@ -447,20 +445,7 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
         bin_files = {}
     read_bin = {}
 
-    if binreads:
-        if os.path.isdir(f"{output}/binned_reads"):
-            os.rmdir(f"{output}/binned_reads")
-
-        if not os.path.isdir(f"{output}/binned_reads"):
-            os.makedirs(f"{output}/binned_reads")
-
     for k, v in clusters_output.items():
-        if binreads:
-            if not os.path.isdir(f"{output}/bin-{k}/"):
-                os.makedirs(f"{output}/bin-{k}/")
-
-            bin_files[k] = open(f"{output}/bin-{k}/reads.fasta", "w+")
-
         for r in v:
             read_bin[r] = k
 
@@ -469,10 +454,19 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
     fmt = "fasta" if reads.split(
         '.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
 
+    if binreads:
+        if os.path.isdir(f"{output}/binned_reads"):
+            shutil.rmtree(f"{output}/binned_reads")
+
+        if not os.path.isdir(f"{output}/binned_reads"):
+            os.makedirs(f"{output}/binned_reads")
+
     for r, record in enumerate(SeqIO.parse(reads, fmt)):
         binout.write(f"{read_bin[r]}\n")
         lenout.write(f"{len(record.seq)}\n")
         if binreads:
+            if read_bin[r] not in bin_files:
+                bin_files[read_bin[r]] = open(f"{output}/binned_reads/Bin-{read_bin[r]}.fasta", "w+")
             bin_files[read_bin[r]].write(f">read-{r}\n")
             bin_files[read_bin[r]].write(f"{record.seq}\n")
 
@@ -482,3 +476,61 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
     if binreads:
         for k, f in bin_files.items():
             f.close()
+
+
+def perform_contig_binning_HDBSCAN(output, 
+                                   fragment_parent, 
+                                   bincontigs, 
+                                   contigs_path, 
+                                   threads):
+    # import umap
+    from hdbscan import HDBSCAN
+
+    latent = np.load(f'{output}/latent.npy')
+    logger.info("Clustering using HDBSCAN running")
+    
+    labels = HDBSCAN(min_cluster_size=250).fit_predict(latent)
+
+    clusters = defaultdict(list)
+
+    for i, c in enumerate(labels):
+        if c != -1:
+            clusters[c].append(i)
+
+    logger.info(f"HDBSCAN detected {len(clusters)}")
+
+    parent_clusters = defaultdict(list)
+
+    for c, idx in clusters.items():
+        for i in idx:
+            parent_clusters[fragment_parent[i]].append(c)
+
+    contig_cluster = defaultdict(lambda: 'unbinned')
+
+    for contig, frag_clusters in parent_clusters.items():
+        counts = Counter(frag_clusters)
+        cluster, _ = counts.most_common()[0]
+        contig_cluster[contig] = cluster
+
+    binout = open(f"{output}/bins.txt", "w+")
+    for cn, cl in contig_cluster.items():
+        binout.write(f"{cn}\t{cl}\n")
+    binout.close()
+        
+    if bincontigs:
+        logger.info("Separating contigs into bin files")
+        bin_file = {}
+
+        if os.path.isdir(f"{output}/binned_contigs"):
+            shutil.rmtree(f"{output}/binned_contigs")
+        os.mkdir(f"{output}/binned_contigs")
+
+        for record in SeqIO.parse(contigs_path, "fasta"):
+            bname = contig_cluster[record.id]
+
+            if bname not in bin_file:
+                bin_file[bname] = open(f"{output}/binned_contigs/Bin-{bname}.fasta", "w+")
+            bin_file[bname].write(f">{record.id}\n{record.seq}\n")
+
+        for k, v in bin_file.items():
+            v.close()        

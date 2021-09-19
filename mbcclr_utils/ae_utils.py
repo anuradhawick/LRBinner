@@ -4,16 +4,11 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.neighbors import NearestNeighbors
-import torch.nn.functional as F
 import logging
 from tqdm import tqdm
-import itertools
-import random
 from collections import defaultdict
 import os
 import json
-import time
 
 logger = logging.getLogger('LRBinner')
 
@@ -75,69 +70,54 @@ class VAE(nn.Module):
         self.softplus = nn.Softplus()
         self.softmax = nn.Softmax(dim=1)
         self.dropoutlayer = nn.Dropout(p=self.dropout)
+
         self.constraints = constraints
         self.device = device
 
         if self.constraints:
-            self._index_constraints()
-        
+            self.constrained_idx = set()
+            ml = np.array(constraints['ml'])
+            self.ml_index = {}
+            self.mnl_index = {}
+
+            for [k, v] in ml:
+                self.constrained_idx.add(k)
+                self.constrained_idx.add(v)
+                self.ml_index[(k, v)] = 1
+
+            mnl = np.array(constraints['mnl'])
+
+            for [k, v] in mnl:
+                self.constrained_idx.add(k)
+                self.constrained_idx.add(v)
+                self.mnl_index[(k, v)] = 1
+
         self.to(self.device)
-
-    def _index_constraints(self):
-        self.taxa_idx = defaultdict(set)
-        self.idx_taxa = defaultdict(set)
-        self.constrained_idx = set()
-        # given a taxa, you find all cannot link idx in this
-        self.except_set = {}
-
-        for taxa in self.constraints.values():
-            self.except_set[taxa] = set()
-
-        for idx, taxa in self.constraints.items():
-            self.idx_taxa[idx] = taxa
-            self.taxa_idx[taxa].add(idx)
-            self.constrained_idx.add(idx)
-
-            for etaxa in self.except_set.keys():
-                if etaxa!=taxa:
-                    self.except_set[etaxa].add(idx)
 
 
     def _search_index(self, batch_indices):
         must_link_pairs = []
         must_not_link_pairs = []
-        # t = time.time()
         batch_indices = batch_indices.tolist()
         valid_idx = list(sorted(self.constrained_idx.intersection(batch_indices)))
         idx_local_map = {i:n for n, i in enumerate(batch_indices)}
-        # print("This took", time.time()-t)
-
-        # print(len(valid_idx))
 
         must_link_pairs = []
         must_not_link_pairs = []
-
-        # t1 = time.time()
 
         for i in valid_idx:
             for j in valid_idx:
                 if j>=i:
                     break
-                if self.idx_taxa[i] == self.idx_taxa[j]:
-                    must_link_pairs.append([idx_local_map[i], idx_local_map[j]])
-                else:
-                    must_not_link_pairs.append([idx_local_map[i], idx_local_map[j]])
 
-        # if len(must_link_pairs) > 100:
-        #     must_link_pairs = random.sample(must_link_pairs, 100)
-        # if len(must_not_link_pairs) > 100:
-        #     must_not_link_pairs = random.sample(must_not_link_pairs, 100)
+                if (i, j) in self.ml_index or (j, i) in self.ml_index:
+                    must_link_pairs.append([idx_local_map[i], idx_local_map[j]])
+
+                if (i, j) in self.mnl_index or (j, i) in self.mnl_index:
+                    must_not_link_pairs.append([idx_local_map[i], idx_local_map[j]])
         
         must_link_pairs = np.array(must_link_pairs)
         must_not_link_pairs = np.array(must_not_link_pairs)
-
-        
-        # print("Finding index took", time.time()-t1)
 
         return must_link_pairs, must_not_link_pairs
     
@@ -261,54 +241,13 @@ class VAE(nn.Module):
     def calc_loss(self, covs_in, covs_out, profs_in, profs_out, mu, logsigma, indices):
         loss_ml = 0
         loss_mnl = 0
-        # indices = indices.cpu().numpy()
 
         if self.constraints is not None:
-            # idx_local_map = {i:n for n, i in enumerate(indices)}
-            # idx_groups = defaultdict(list)
-
-            # for i in indices:
-            #     if i in self.constraints:
-            #         idx_groups[self.constraints[i]].append(idx_local_map[i])
-
-            # must_link_pairs = []
-            # must_not_link_pairs = []
-
-            # for k, ml in idx_groups.items():
-            #     if len(ml) >= 2:
-            #         pairs = list(itertools.combinations(ml, 2))
-            #         must_link_pairs.extend(pairs)
-            
-            # if len(must_link_pairs) > len(indices):
-            #     must_link_pairs = random.sample(must_link_pairs, len(indices))
-
-            # for n, (k1, ml1) in enumerate(idx_groups.items()):
-            #     for m, (k2, ml2) in enumerate(idx_groups.items()):
-            #         if n == m:
-            #             break
-
-            #         if len(ml1) > 100:
-            #             ml1 = random.sample(ml1, 100)
-            #         if len(ml2) > 100:
-            #             ml2 = random.sample(ml2, 100)
-
-            #         for m1 in ml1:
-            #             for m2 in ml2:
-            #                 must_not_link_pairs.append([m1, m2])
-
-            
-            # must_link_pairs = np.array(must_link_pairs)
-            # must_not_link_pairs = np.array(must_not_link_pairs)
-
             must_link_pairs, must_not_link_pairs = self._search_index(indices)
-
-            # print(must_link_pairs.shape, must_not_link_pairs.shape)
             
             if len(must_link_pairs) > 0:
-                # loss_ml = F.logsigmoid((mu[must_link_pairs.T[0]] * mu[must_link_pairs.T[1]]).sum(-1)).mean()
                 loss_ml = (mu[must_link_pairs.T[0]] - mu[must_link_pairs.T[1]]).pow(2).sum(dim=1).mean()
             if len(must_link_pairs) > 0:
-                # loss_mnl = F.logsigmoid(-(mu[must_not_link_pairs.T[0]] * mu[must_not_link_pairs.T[1]]).sum(-1)).mean()
                 loss_mnl = torch.max(torch.tensor(0).to(self.device), 10 - (mu[must_not_link_pairs.T[0]] - mu[must_not_link_pairs.T[1]]).pow(2).sum(dim=1).mean())
 
         e_cov = (covs_out - covs_in).pow(2).sum(dim=1).mean()
@@ -361,7 +300,10 @@ def vae_encode(output, latent_dims, hidden_layers, epochs, constraints, cuda):
         device = "cuda"
 
     vae = VAE(cov_profiles.shape[1], comp_profiles.shape[1],
-              latent_dims=latent_dims, hidden_layers=hidden_layers, constraints=constraints, device=device)
+              latent_dims=latent_dims, 
+              hidden_layers=hidden_layers, 
+              constraints=constraints, 
+              device=device)
 
     logger.debug(f"Model param count = {count_parameters(vae)}") 
     logger.debug(vae)
