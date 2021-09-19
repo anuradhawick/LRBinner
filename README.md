@@ -121,7 +121,7 @@ cd LRBinner
 ### Help
 
 ```
-usage: LRBinner [-h] {reads,contigs} ...
+usage: LRBinner [-h] [--version] {reads,contigs} ...
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT) and long read assemblies. Tool utilizes composition and coverage
@@ -131,6 +131,7 @@ clustered. Minimum RAM requirement is 9GB (4GB GPU if cuda used).
 
 optional arguments:
   -h, --help       show this help message and exit
+  --version, -v    Show version.
 
 LRBinner running Mode:
   {reads,contigs}
