@@ -9,10 +9,10 @@
 
 ## Updates
 
-* Reference based binning is now available (check Usage section)
-* Training on CUDA is now available!
-* New test examples and results with blogs will also be available soon 🔖 
-* We will put a new release as well 👌
+<!-- * Reference based binning is now available (check Usage section) -->
+<!-- * Training on CUDA is now available! -->
+* Contigs from long reads assemblies can now be binned! 
+* Taxonomic binning of long reads paused till next update
 
 ## Dependencies
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
@@ -27,9 +27,8 @@ Essential libraries
 * tabulate 0.8.7
 * pytorch 1.4.0
 
-Essential of using constraints
-
-* umap-learn
+Essential for contig binning
+<!-- * umap-learn -->
 * HDBSCAN
 
 
@@ -54,13 +53,14 @@ OR
 ```
 sh build.sh
 ```    
-* To install the program 
+<!-- * To install the program 
 ```
 pip install .
 ```
-OR add the program path to your $PATH variable.
+OR add the program path to your $PATH variable. -->
 
-## Test run data
+## Test run data 
+>For long reads binning coverage of this dataset may be too low for assembly)
 
 Extract test data from [here](https://anu365-my.sharepoint.com/:f:/g/personal/u6776114_anu_edu_au/EnV-rUq01pRHl1lH4Y8SaSwBwVVMKNAptbA6YW8RWX6Pqw?e=tDgy9v);
 
@@ -85,7 +85,7 @@ Recall               96.77
 F1-Score             96.77
 ```
 ## Usage
-### Constraints file format
+<!-- ### Constraints file format
 
 Provide a TSV file containing read index and the taxonomic label. See the following example. An example usecase would be to sample few reads (10000-50000) and annotate them. Then prepare a TSV file as below and use in binning.
 
@@ -104,7 +104,7 @@ Cannot-link - reads from different taxa
 300860  Streptomyces_scabiei
 294442  Streptomyces_scabiei
 ```
-Use flag `--constraints` or `-c` to provide this file to LRBinner.
+Use flag `--constraints` or `-c` to provide this file to LRBinner. -->
 
 ### Parameters
 
@@ -121,19 +121,32 @@ cd LRBinner
 ### Help
 
 ```
-usage: LRBinner [-h] --reads-path READS_PATH [--k-size {3,4,5}]
-                [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
-                [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
-                [--ae-hidden AE_HIDDEN] [--min-bin-size MIN_BIN_SIZE]
-                [--bin-iterations BIN_ITERATIONS] [--constraints CONSTRAINTS]
-                [--threads THREADS] [--separate-reads] [--cuda] [--resume]
-                --output <DEST> [--version]
+usage: LRBinner [-h] {reads,contigs} ...
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
-(PacBio/ONT). Tool utilizes composition and coverage profiles of reads based
-on k-mer frequencies to perform dimension reduction via a deep variational
-auto-encoder. Dimension reduced reads are then clustered using a novel
-distance histogram based clustering algorithm. Minimum RAM requirement is 9GB.
+(PacBio/ONT) and long read assemblies. Tool utilizes composition and coverage
+profiles of reads based on k-mer frequencies to perform dimension reduction
+via a deep variational auto-encoder. Dimension reduced reads are then
+clustered. Minimum RAM requirement is 9GB (4GB GPU if cuda used).
+
+optional arguments:
+  -h, --help       show this help message and exit
+
+LRBinner running Mode:
+  {reads,contigs}
+    reads          for binning reads
+    contigs        for binning contigs
+```
+### Reads binning help
+
+```
+usage: LRBinner reads [-h] --reads-path READS_PATH [--k-size {3,4,5}]
+                      [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
+                      [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
+                      [--ae-hidden AE_HIDDEN] [--threads THREADS] [--separate]
+                      [--cuda] [--resume] --output <DEST> [--version]
+                      [--min-bin-size MIN_BIN_SIZE]
+                      [--bin-iterations BIN_ITERATIONS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -151,27 +164,61 @@ optional arguments:
   --ae-dims AE_DIMS     Size of the latent dimension.
   --ae-hidden AE_HIDDEN
                         Hidden layer sizes eg: 128,128
-  --min-bin-size MIN_BIN_SIZE, -mbs MIN_BIN_SIZE
-                        The minimum number of reads a bin should have.
-  --bin-iterations BIN_ITERATIONS, -bit BIN_ITERATIONS
-                        Number of iterations for cluster search. Use 0 for
-                        exhaustive search.
-  --constraints CONSTRAINTS, -c CONSTRAINTS
-                        Set of constraints (must-link and cannot-link)
   --threads THREADS, -t THREADS
                         Thread count for computations
-  --separate-reads, -sep
-                        Flag to separate reads into bins detected. Avaialbe in
-                        folder named 'binned'.
+  --separate, -sep      Flag to separate reads/contigs into bins detected.
+                        Avaialbe in folder named 'binned'.
   --cuda                Whether to use CUDA if available.
   --resume              Continue from the last step or the binning step (which
                         ever comes first). Can save time needed count k-mers.
   --output <DEST>, -o <DEST>
                         Output directory
   --version, -v         Show version.
+  --min-bin-size MIN_BIN_SIZE, -mbs MIN_BIN_SIZE
+                        The minimum number of reads a bin should have.
+  --bin-iterations BIN_ITERATIONS, -bit BIN_ITERATIONS
+                        Number of iterations for cluster search. Use 0 for
+                        exhaustive search.
 ```
-* Output path is the foldername that you wish the results to be in.
-* Specify the number of threads
+### Contigs binning help
+
+```
+usage: LRBinner contigs [-h] --reads-path READS_PATH [--k-size {3,4,5}]
+                        [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
+                        [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
+                        [--ae-hidden AE_HIDDEN] [--threads THREADS]
+                        [--separate] [--cuda] [--resume] --output <DEST>
+                        [--version] --contigs CONTIGS
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --reads-path READS_PATH, -r READS_PATH
+                        Reads path for binning
+  --k-size {3,4,5}, -k {3,4,5}
+                        k value for k-mer frequency vector. Choose between 3
+                        and 5.
+  --bin-size BIN_SIZE, -bs BIN_SIZE
+                        Bin size for the coverage histogram.
+  --bin-count BIN_COUNT, -bc BIN_COUNT
+                        Number of bins for the coverage histogram.
+  --ae-epochs AE_EPOCHS
+                        Epochs for the auto_encoder.
+  --ae-dims AE_DIMS     Size of the latent dimension.
+  --ae-hidden AE_HIDDEN
+                        Hidden layer sizes eg: 128,128
+  --threads THREADS, -t THREADS
+                        Thread count for computations
+  --separate, -sep      Flag to separate reads/contigs into bins detected.
+                        Avaialbe in folder named 'binned'.
+  --cuda                Whether to use CUDA if available.
+  --resume              Continue from the last step or the binning step (which
+                        ever comes first). Can save time needed count k-mers.
+  --output <DEST>, -o <DEST>
+                        Output directory
+  --version, -v         Show version.
+  --contigs CONTIGS, -c CONTIGS
+                        Contigs path
+```
 
 ## Citation
 
@@ -196,8 +243,6 @@ optional arguments:
 }
 ```
 
-## :exclamation:Note :stop_sign:
-
-CODE IS UNDER CLEANING! CHANGES WILL FOLLOW
+> More updates to come!
 
 > Get in touch [anuradhawick.com](https://anuradhawick.com)

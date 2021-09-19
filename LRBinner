@@ -64,14 +64,14 @@ def main():
                         )
     common_arg_parser.add_argument('--output', '-o', metavar='<DEST>',
                         help="Output directory", type=str, required=True)
-    common_arg_parser.add_argument('--version', '-v',
+
+    main_arg_parser = argparse.ArgumentParser(description="""LRBinner Help. A tool developed for binning of metagenomics long reads (PacBio/ONT) and long read assemblies. \
+            Tool utilizes composition and coverage profiles of reads based on k-mer frequencies to perform dimension reduction via a deep variational auto-encoder. \
+            Dimension reduced reads are then clustered. Minimum RAM requirement is 9GB (4GB GPU if cuda used).""", add_help=True)
+    main_arg_parser.add_argument('--version', '-v',
                         action='version',
                         help="Show version.",
-                        version='%(prog)s 0.2')
-
-    main_arg_parser = argparse.ArgumentParser(description="""LRBinner Help. A tool developed for binning of metagenomics long reads (PacBio/ONT). \
-            Tool utilizes composition and coverage profiles of reads based on k-mer frequencies to perform dimension reduction via a deep variational auto-encoder. \
-            Dimension reduced reads are then clustered using a novel distance histogram based clustering algorithm. Minimum RAM requirement is 9GB.""", add_help=True)
+                        version='%(prog)s 2.1')
 
     mode_parsers = main_arg_parser.add_subparsers(title="LRBinner running Mode", required=True, dest="mode")
     
