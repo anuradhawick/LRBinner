@@ -4,12 +4,11 @@ import os
 import pathlib
 import logging
 
-# create logger
 logger = logging.getLogger('LRBinner')
 
 
 # Modified from SolidBin
-def scan_for_marker_genes(contig_file, nthreads, hard=0):
+def scan_for_marker_genes(contigs, output, threads, hard=0):
 
     software_path = pathlib.Path(__file__).parent.absolute()
 
@@ -19,42 +18,43 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
                              'src', 'hmmsearch')
     markerURL = os.path.join(software_path.parent, 'auxiliary', 'marker.hmm')
 
-    logger.debug(markerURL)
+    logger.debug(f"Using marker genes from {markerURL}")
 
-    fragResultURL = contig_file+".frag.faa"
-    hmmResultURL = contig_file+".hmmout"
+    output = f"{output}/marker_genes/"
+    fragResultURL = f"{output}/contigs.frag.faa"
+    hmmResultURL = f"{output}/contigs.hmmout"
 
     if not (os.path.exists(fragResultURL)):
-        fragCmd = fragScanURL+" -genome="+contig_file+" -out="+contig_file + \
-            ".frag -complete=0 -train=complete -thread="+str(nthreads)+" 1>" + \
-            contig_file+".frag.out 2>"+contig_file+".frag.err"
-        logger.debug("exec cmd: "+fragCmd)
+        fragCmd = f"""{fragScanURL} -genome="{contigs}" -out="{output}contigs.frag" \
+            -complete=0 -train=complete -thread={threads} 1> "{output}contigs.frag.out" 2> \
+                "{output}/contigs.frag.err" """
+        logger.debug(f"FragGeneScan cmd: {fragCmd}")
         os.system(fragCmd)
 
     if os.path.exists(fragResultURL):
         if not (os.path.exists(hmmResultURL)):
-            hmmCmd = hmmExeURL+" --domtblout "+hmmResultURL+" --cut_tc --cpu "+str(nthreads)+" " + \
-                markerURL+" "+fragResultURL+" 1>"+hmmResultURL+".out 2>"+hmmResultURL+".err"
-            logger.debug("exec cmd: "+hmmCmd)
+            hmmCmd = f"""{hmmExeURL} --domtblout "{hmmResultURL}" --cut_tc --cpu {threads} \
+                "{markerURL}" "{fragResultURL}" 1> "{hmmResultURL}.out" 2> "{hmmResultURL}.err" """
+            logger.debug(f"HMMER cmd: {hmmCmd}")
             os.system(hmmCmd)
 
         else:
-            logger.error("HMMER search failed! Path: " +
-                         hmmResultURL + " does not exist.")
+            logger.debug(f"HMMER search skipped! Path: {hmmResultURL} exists.")
     else:
-        logger.error("FragGeneScan failed! Path: " +
-                     fragResultURL + " does not exist.")
+        logger.debug(f"FragGeneScan skipped! Path: {fragResultURL} exists.")
 
 
 # Get contigs containing marker genes
-def get_contigs_with_marker_genes(
-        contigs_file, mg_length_threshold, contig_lengths, min_length):
+def get_contigs_with_marker_genes(output, 
+                                    mg_length_threshold, 
+                                    contig_lengths, 
+                                    min_length):
 
     marker_contigs = {}
     marker_contig_counts = {}
     contig_markers = {}
 
-    with open(contigs_file+".hmmout", "r") as myfile:
+    with open(f"{output}/marker_genes/contigs.hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
