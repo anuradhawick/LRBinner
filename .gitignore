@@ -11,6 +11,7 @@ test*
 
 # auxiliary folders
 auxiliary/FragGeneScan1.31/
+auxiliary/FragGeneScan1.31.tar.gz
 auxiliary/hmmer-3.3.2
 
 # OSX
