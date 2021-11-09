@@ -65,7 +65,7 @@ OR add the program path to your $PATH variable. -->
 Extract test data from [here](https://anu365-my.sharepoint.com/:f:/g/personal/u6776114_anu_edu_au/EnV-rUq01pRHl1lH4Y8SaSwBwVVMKNAptbA6YW8RWX6Pqw?e=tDgy9v);
 
 ```
-LRBinner -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 -bit 0 -bs 10 -bc 10
+LRBinner reads -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 -bit 0 -bs 10 -bc 10
 ```
 
 ## Test run results
