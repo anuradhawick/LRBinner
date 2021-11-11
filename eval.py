@@ -7,14 +7,17 @@ parser.add_argument(
     '--truth', '-t', help="Path to text file with grounds truth. Items with label Unknown will be ignored.", type=str, required=True)
 parser.add_argument(
     '--bins', '-b', help="Path of bins.txt file from LRBinner.", type=str, required=True)
+parser.add_argument(
+    '--print', '-p', help="Print assignments in tabular form.", action='store_true')
 
 args = parser.parse_args()
 
 truth = args.truth
 bins = args.bins
+tab = args.print
 
 
-def clusters_table(clusters, truth):
+def clusters_table(clusters, truth, tab):
     clx = set(clusters)
     trx = set(truth)
     c_map = {k: v for v, k in enumerate(clx)}
@@ -34,12 +37,13 @@ def clusters_table(clusters, truth):
     recall = sum([max(row) for row in mat])/sum([sum(row) for row in mat])
     precision = sum([max(row) for row in matT])/sum([sum(row) for row in matT])
 
-    print(tabulate(matrix, tablefmt="plain"))
-    print()
+    if tab:
+        print(tabulate(matrix, tablefmt="plain"))
+        print()
     print(f"Precision\t{recall*100:10.2f}")
     print(f"Recall    \t{precision*100:10.2f}")
     print(f"F1-Score  \t{(2 * recall*precision/(recall+precision))*100:10.2f}")
-
+    print(f"Bins      \t{len(clx):10}")
 
 truth = open(truth).read().strip().split("\n")
 bins = open(bins).read().strip().split("\n")
@@ -47,4 +51,4 @@ bins = open(bins).read().strip().split("\n")
 bins_f = [b for b, t in zip(bins, truth) if t.lower() != "unknown"]
 truth_f = [t for b, t in zip(bins, truth) if t.lower() != "unknown"]
 
-clusters_table(bins_f, truth_f)
+clusters_table(bins_f, truth_f, tab)
