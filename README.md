@@ -17,6 +17,13 @@
 ## Dependencies
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
+A possible conda environment to work (credits [Calum Walsh
+](https://github.com/cazzlewazzle89))
+
+```sh
+conda create -n lrbinner -y python=3.7 numpy scipy seaborn h5py tabulate pytorch hdbscan gcc openmp tqdm biopython
+```
+
 ### Python dependencies
 Essential libraries
 
