@@ -4,7 +4,7 @@ import setuptools
 import subprocess
 from distutils.command.build import build
 from setuptools.command.install import install as SetuptoolsInstall
-import os
+import sys
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -54,7 +54,8 @@ setuptools.setup(
         "tabulate",
         "seaborn",
         "setuptools",
-        "pytorch"],
+        "pytorch",
+        "scikit-learn"],
     python_requires='>=3.7',
     cmdclass={  'build': SHBuild }
 )
