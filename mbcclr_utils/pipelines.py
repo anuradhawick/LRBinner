@@ -256,7 +256,7 @@ def run_reads_binning(args):
     cuda = args.cuda
     resume = args.resume
     min_cluster_size = max(args.min_bin_size, 1)
-    iterations = max(args.bin_iterations, 1)
+    iterations = max(args.bin_iterations, 0)
     output = args.output
 
     checkpoints_path = f"{output}/checkpoints"

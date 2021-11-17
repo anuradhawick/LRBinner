@@ -200,6 +200,7 @@ def cluster_points(latent, iterations, min_cluster_size):
 
     if iterations != 0:
         for x in tqdm(range(iterations), total=iterations, desc="Performing iterations"):
+            # TODO
             if len(read_ids) < min_cluster_size * 0.6:
                 break
             random_point = random.choice(read_ids)
@@ -223,6 +224,7 @@ def cluster_points(latent, iterations, min_cluster_size):
         x = 0
 
         while True:
+            # TODO
             if len(read_ids) < min_cluster_size * 0.1:
                 break
 
@@ -271,7 +273,7 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
     logger.info("Clustering algorithm running")
     clusters = cluster_points(latent, iterations, min_cluster_size)
     clusters_output = {}
-    logger.info(f"Detected {len(clusters)}")
+    logger.info(f"Detected {len(clusters)} clusters")
 
     for k, v in clusters.items():
         if len(v) > min_cluster_size:

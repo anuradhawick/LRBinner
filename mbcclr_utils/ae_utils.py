@@ -41,6 +41,8 @@ class VAE(nn.Module):
         self.hidden_layers = hidden_layers
         self.latent_dims = latent_dims
         self.dropout = 0.1
+        # TODO
+        # self.beta = 5
 
         self.encoderlayers = nn.ModuleList()
         self.encodernorms = nn.ModuleList()
@@ -251,13 +253,17 @@ class VAE(nn.Module):
                 loss_mnl = torch.max(torch.tensor(0).to(self.device), 10 - (mu[must_not_link_pairs.T[0]] - mu[must_not_link_pairs.T[1]]).pow(2).sum(dim=1).mean())
 
         e_cov = (covs_out - covs_in).pow(2).sum(dim=1).mean()
+        # TODO
+        # e_cov_weight = 0.1
         e_cov_weight = h_params[str(self.prof_size)]["e_cov_weight"]
 
         e_comp = (profs_out - profs_in).pow(2).sum(dim=1).mean()
+        # e_comp_weight = 1
         e_comp_weight = h_params[str(self.prof_size)]["e_comp_weight"]
 
         kld = -0.5 * (1 + logsigma - mu.pow(2) -
                       logsigma.exp()).sum(dim=1).mean()
+        # kld_weight = 1 / (self.prof_size * self.beta)
         kld_weight = h_params[str(self.prof_size)]["kld_weight"]
 
         loss = e_cov * e_cov_weight + e_comp * e_comp_weight + kld * kld_weight + loss_ml + loss_mnl
