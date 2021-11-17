@@ -69,10 +69,10 @@ OR add the program path to your $PATH variable. -->
 ## Test run data 
 >For long reads binning coverage of this dataset may be too low for assembly)
 
-Extract test data from [here](https://anu365-my.sharepoint.com/:f:/g/personal/u6776114_anu_edu_au/EnV-rUq01pRHl1lH4Y8SaSwBwVVMKNAptbA6YW8RWX6Pqw?e=tDgy9v);
+Extract Sim-8 data from [here](https://anu365-my.sharepoint.com/:u:/g/personal/u6776114_anu_edu_au/EZfR_olp6fxOpoKEexcm1ZABk1fTQTnW0-3ja772k22WbA?e=aoXr7N);
 
 ```
-LRBinner reads -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 -bit 0 -bs 10 -bc 10
+python LRBinner reads -r reads.fasta -bc 10 -bs 32 -o lrb --resume --cuda -mbs 5000 --ae-dims 4 --ae-epochs 200 -bit 0 -t 32
 ```
 
 ## Test run results
@@ -80,16 +80,20 @@ LRBinner reads -r reads.fasta -o lrb_output/ --ae-epochs 200 --resume -mbs 1000 
 Note that the results could vary due to slight sampling differences. Evaluations can be done using the `eval.py` script.
 
 ```
-_                         Bin-0_(2)  Bin-1_(3)  Bin-2_(1)  Bin-3_(0)  Bin-4_(4)
-Campylobacter_jejuni      1          0          0          63         5726
-Acetobacter_pasteurianus  592        6138       58         42         0
-Yersinia_pestis_Angola    30946      255        25         370        181
-Lactobacillus_paracasei   157        0          6962       100        0
-Chlamydia_psittaci        0          0          0          5512       0
+_                                                           Bin-0_(4)  Bin-1_(1)  Bin-2_(3)  Bin-3_(0)  Bin-4_(5)  Bin-5_(2)  Bin-6_(6)  Bin-7_(7)
+CP002618.1_Lactobacillus_paracasei_strain_BD-II             744        973        92         70169      215        0          0          0
+NC_011658.1_Bacillus_cereus_AH187                           110        11         277        10         30129      0          1          439
+CP002807.1_Chlamydia_psittaci_08DC60_chromosome             0          0          9          0          1          0          0          11014
+NC_012883.1_Thermococcus_sibiricus_MM_739                   74         0          32441      1          28         2          0          8
+NC_011415.1_Escherichia_coli_SE11,_complete_sequence        70474      432        47         220        616        3          0          43
+NC_013929.1_Streptomyces_scabiei_87.22_complete_genome      343        0          0          0          0          118979     8          0
+FQ312002.1_Haemophilus_parainfluenzae_T3T1_complete_genome  394        83623      32         191        1596       0          0          46
+AP011170.1_Acetobacter_pasteurianus_IFO_3283-12_DNA         991        40         15         83         14         0          7382       13
 
-Precision            96.77
-Recall               96.77
-F1-Score             96.77
+Precision	     98.12
+Recall    	     98.12
+F1-Score  	     98.12
+Bins      	         8
 ```
 ## Usage
 <!-- ### Constraints file format
