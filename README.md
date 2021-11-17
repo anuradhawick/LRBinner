@@ -14,6 +14,10 @@
 * Contigs from long reads assemblies can now be binned! 
 * Taxonomic binning of long reads paused till next update
 
+## Use Docker!
+
+`Dockerfile` is now available. (If you're familiar deploying a docker file, No Image pushed yet)
+
 ## Dependencies
 LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
 
