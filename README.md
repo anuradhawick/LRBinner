@@ -7,13 +7,6 @@
 ![GitHub](https://img.shields.io/github/license/anuradhawick/LRBinner)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/LRBinner)
 
-## Updates
-
-<!-- * Reference based binning is now available (check Usage section) -->
-<!-- * Training on CUDA is now available! -->
-* Contigs from long reads assemblies can now be binned! 
-* Taxonomic binning of long reads paused till next update
-
 ## Use Docker!
 
 `Dockerfile` is now available. (If you're familiar deploying a docker file, No Image pushed yet)
