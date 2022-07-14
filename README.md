@@ -231,6 +231,8 @@ optional arguments:
 
 ## Citation
 
+If you use LRBinner please cite using the the following bibtex files
+
 ```bibtex
 @InProceedings{wickramarachchi_et_al:LIPIcs.WABI.2021.11,
   author =	{Wickramarachchi, Anuradha and Lin, Yu},
@@ -250,6 +252,24 @@ optional arguments:
   doi =		{10.4230/LIPIcs.WABI.2021.11},
   annote =	{Keywords: Metagenomics binning, long reads, machine learning, clustering}
 }
+```
+
+```bibtex
+﻿@Article{Wickramarachchi2022,
+  author={Wickramarachchi, Anuradha and Lin, Yu},
+  title={Binning long reads in metagenomics datasets using composition and coverage information},
+  journal={Algorithms for Molecular Biology},
+  year={2022},
+  month={Jul},
+  day={11},
+  volume={17},
+  number={1},
+  pages={14},
+  issn={1748-7188},
+  doi={10.1186/s13015-022-00221-z},
+  url={https://doi.org/10.1186/s13015-022-00221-z}
+}
+
 ```
 
 > More updates to come!
