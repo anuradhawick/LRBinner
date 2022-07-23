@@ -18,7 +18,7 @@ A possible conda environment to work (credits [Calum Walsh
 ](https://github.com/cazzlewazzle89))
 
 ```sh
-conda create -n lrbinner -y python=3.7 numpy scipy seaborn h5py tabulate pytorch hdbscan gcc openmp tqdm biopython
+conda create -n lrbinner -y python=3.7 numpy scipy seaborn h5py tabulate pytorch hdbscan gcc openmp tqdm biopython fraggenescan hmmer
 ```
 
 ### Python dependencies
@@ -33,6 +33,8 @@ Essential libraries
 
 Essential for contig binning
 <!-- * umap-learn -->
+* fraggenescan 1.31
+* hmmer 3.3.2
 * HDBSCAN
 
 
