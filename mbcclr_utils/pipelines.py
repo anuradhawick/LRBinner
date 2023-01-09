@@ -6,6 +6,7 @@ from collections import defaultdict
 from Bio import SeqIO
 import numpy as np
 import random
+import shutil
 
 from mbcclr_utils.runners_utils import *
 from mbcclr_utils import ae_utils
@@ -33,6 +34,8 @@ def run_contig_binning(args):
     checkpoints_path = f"{output}/checkpoints"
 
     if not resume:
+        if os.path.isdir(f"{output}"):
+            shutil.rmtree(f"{output}")
         checkpoint = Checkpointer(checkpoints_path)
     else:
         logger.info("Resuming the program from previous checkpoints")
@@ -262,6 +265,8 @@ def run_reads_binning(args):
     checkpoints_path = f"{output}/checkpoints"
 
     if not resume:
+        if os.path.isdir(f"{output}"):
+            shutil.rmtree(f"{output}")
         checkpoint = Checkpointer(checkpoints_path)
     else:
         logger.info("Resuming the program from previous checkpoints")

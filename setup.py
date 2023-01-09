@@ -39,7 +39,7 @@ setuptools.setup(
     package_data=package_data,
     data_files=data_files,
     include_package_data=True,
-    scripts=['LRBinner'],
+    scripts=['lrbinner.py'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         "Programming Language :: Python :: 3",
@@ -56,6 +56,6 @@ setuptools.setup(
         "setuptools",
         "pytorch",
         "scikit-learn"],
-    python_requires='>=3.7',
+    python_requires='>=3.10',
     cmdclass={  'build': SHBuild }
 )

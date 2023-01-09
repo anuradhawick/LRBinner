@@ -12,13 +12,12 @@
 `Dockerfile` is now available. (If you're familiar deploying a docker file, No Image pushed yet)
 
 ## Dependencies
-LRBinner is coded purely using C++ (v9) and Python 3.7. To run LRBinner, you will need to install the following python and C++ modules.
+LRBinner is coded purely using C++ (v9+) and Python 3.10. To run LRBinner, you will need to install the following python and C++ modules.
 
-A possible conda environment to work (credits [Calum Walsh
-](https://github.com/cazzlewazzle89))
+A possible conda environment to work (credits [Calum Walsh](https://github.com/cazzlewazzle89))
 
 ```sh
-conda create -n lrbinner -y python=3.7 numpy scipy seaborn h5py tabulate pytorch hdbscan gcc openmp tqdm biopython fraggenescan hmmer
+conda create -n lrbinner -y python=3.10 numpy scipy seaborn h5py hdbscan gcc openmp tqdm biopython fraggenescan hmmer tabulate pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 ```
 
 ### Python dependencies
@@ -39,7 +38,7 @@ Essential for contig binning
 
 
 ### C++ requirements
-* GCC version 9.1.0
+* GCC version 9.1.0 or later
 * OpenMP 4.5 for multi processing
 
 ## Downloading LRBinner
@@ -126,12 +125,12 @@ Internal parameters are not yet set for `-k 5` choice. We are working on that. :
 Use the `-h` argument to list all the available commands.
 ```
 cd LRBinner
-./LRBinner -h
+./lrbinner.py -h
 ```
 ### Help
 
 ```
-usage: LRBinner [-h] [--version] {reads,contigs} ...
+usage: lrbinner.py [-h] [--version] {reads,contigs} ...
 
 LRBinner Help. A tool developed for binning of metagenomics long reads
 (PacBio/ONT) and long read assemblies. Tool utilizes composition and coverage
@@ -151,7 +150,7 @@ LRBinner running Mode:
 ### Reads binning help
 
 ```
-usage: LRBinner reads [-h] --reads-path READS_PATH [--k-size {3,4,5}]
+usage: lrbinner.py reads [-h] --reads-path READS_PATH [--k-size {3,4,5}]
                       [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
                       [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
                       [--ae-hidden AE_HIDDEN] [--threads THREADS] [--separate]
@@ -194,7 +193,7 @@ optional arguments:
 ### Contigs binning help
 
 ```
-usage: LRBinner contigs [-h] --reads-path READS_PATH [--k-size {3,4,5}]
+usage: lrbinner.py contigs [-h] --reads-path READS_PATH [--k-size {3,4,5}]
                         [--bin-size BIN_SIZE] [--bin-count BIN_COUNT]
                         [--ae-epochs AE_EPOCHS] [--ae-dims AE_DIMS]
                         [--ae-hidden AE_HIDDEN] [--threads THREADS]
