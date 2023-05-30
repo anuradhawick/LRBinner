@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import logging
+import shutil
 
 from mbcclr_utils import pipelines
 
@@ -110,6 +111,8 @@ def main():
     
     # running mode
     mode = args.mode
+    # is resuming
+    resume = args.resume
 
     reads_path = args.reads_path
     threads = args.threads
@@ -119,6 +122,9 @@ def main():
     # init logger
     logger = logging.getLogger('LRBinner')
     logger.setLevel(logging.DEBUG)
+
+    if not resume and os.path.isdir(f"{output}"):
+        shutil.rmtree(output)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     consoleHeader = logging.StreamHandler()

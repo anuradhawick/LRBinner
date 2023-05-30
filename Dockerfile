@@ -1,10 +1,7 @@
 FROM continuumio/miniconda3
 LABEL maintainer="anruadhawick@gmail.com"
 
-RUN conda install -y pytorch cudatoolkit=11.3 -c pytorch
-RUN conda install -c conda-forge biopython
-RUN conda install -y tqdm tabulate
-RUN conda install -y -c anaconda scikit-learn
+RUN conda install -y numpy scipy seaborn h5py hdbscan gcc openmp tqdm biopython fraggenescan hmmer tabulate pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -c bioconda c conda-forge biopython
 RUN apt-get update && \
     apt-get -y install g++ bzip2 lzma-dev zlib1g-dev libbz2-dev && \
     apt-get -y install libcurl4-openssl-dev libpthread-stubs0-dev liblzma-dev libomp-dev
@@ -17,7 +14,7 @@ RUN ["bash", "docker_build.sh"]
 
 ENV PATH="/usr/LRBinner/:${PATH}"
 
-ENTRYPOINT ["LRBinner"]
+ENTRYPOINT ["lrbinner.py"]
 CMD ["--help"]
 
 # docker build -t anuradhawick/lrbinner .

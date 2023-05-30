@@ -7,17 +7,17 @@
 ![GitHub](https://img.shields.io/github/license/anuradhawick/LRBinner)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/anuradhawick/LRBinner)
 
-## Use Docker!
+## Docker pathway
 
 `Dockerfile` is now available. (If you're familiar deploying a docker file, No Image pushed yet)
 
 ## Dependencies
 LRBinner is coded purely using C++ (v9+) and Python 3.10. To run LRBinner, you will need to install the following python and C++ modules.
 
-A possible conda environment to work (credits [Calum Walsh](https://github.com/cazzlewazzle89))
+A possible conda/mamba environment to work (credits [Calum Walsh](https://github.com/cazzlewazzle89))
 
 ```sh
-conda create -n lrbinner -y python=3.10 numpy scipy seaborn h5py hdbscan gcc openmp tqdm biopython fraggenescan hmmer tabulate pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+conda create -n lrbinner -y python=3.10 numpy scipy seaborn h5py hdbscan gcc openmp tqdm biopython fraggenescan hmmer tabulate pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -c bioconda
 ```
 
 ### Python dependencies
@@ -232,7 +232,7 @@ optional arguments:
 
 ## Citation
 
-If you use LRBinner please cite using the the following bibtex files
+If you use LRBinner please cite using the following bibtex entries.
 
 ```bibtex
 @InProceedings{wickramarachchi_et_al:LIPIcs.WABI.2021.11,
@@ -273,6 +273,4 @@ If you use LRBinner please cite using the the following bibtex files
 
 ```
 
-> More updates to come!
-
-> Get in touch [anuradhawick.com](https://anuradhawick.com)
+Get in touch and connect at [anuradhawick.com](https://anuradhawick.com) or email [info@anuradhawick.com](mailto:info@anuradhawick.com)
