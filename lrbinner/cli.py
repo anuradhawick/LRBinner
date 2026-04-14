@@ -6,7 +6,7 @@ import time
 import logging
 import shutil
 
-from mbcclr_utils import pipelines
+from lrbinner.mbcclr_utils import pipelines
 
 
 def main():
