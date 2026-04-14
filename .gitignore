@@ -16,3 +16,7 @@ auxiliary/hmmer-3.3.2
 
 # OSX
 .DS_Store
+# Build artifacts
+dist/
+*.egg-info/
+lrbinner/mbcclr_utils/bin
