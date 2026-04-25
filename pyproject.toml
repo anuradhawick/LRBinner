@@ -1,0 +1,64 @@
+[build-system]
+requires = ["flit_core>=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "LRBinner"
+dynamic = ["version", "description"]
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Anuradha Wickramarachchi", email = "anuradhawick@gmail.com"},
+]
+keywords = ["bioinformatics", "metagenomics", "binning", "long-reads"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "biopython",
+    "tqdm",
+    "tabulate",
+    "seaborn",
+    "scikit-learn",
+    "numpy",
+    "scipy",
+    "h5py",
+    "torch",
+    "pykmertools>=0.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/anuradhawick/LRBinner"
+Repository = "https://github.com/anuradhawick/LRBinner"
+"Bug Tracker" = "https://github.com/anuradhawick/LRBinner/issues"
+
+[project.scripts]
+lrbinner = "lrbinner.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.flit.module]
+name = "lrbinner"
+
+[tool.flit.sdist]
+include = ["LICENSE", "README.md"]
+exclude = [
+    "mbcclr_utils/",
+    "metacoag_utils/",
+    "auxiliary/",
+    "*.cpp",
+    "*.h",
+]
