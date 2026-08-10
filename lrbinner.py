@@ -136,7 +136,10 @@ def main():
     start_time = time.time()
 
     # Validation of inputs
-    if not reads_path.split(".")[-1].lower() in ['fq', 'fasta', 'fa', 'fastq']:
+    ext = reads_path.lower().split('.')[-1]
+    if ext == 'gz':
+        ext = reads_path.lower().split('.')[-2]
+    if ext not in ['fq', 'fasta', 'fa', 'fastq']:
         logger.error(
             "Unable to detect file type of reads. Please use either FASTA of FASTQ. Good Bye!")
         sys.exit(1)
