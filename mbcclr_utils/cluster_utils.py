@@ -342,8 +342,10 @@ def perform_binning(output, iterations, min_cluster_size, binreads, reads):
 
     binout = open(f"{output}/bins.txt", "w+")
     lenout = open(f"{output}/lengths.txt", "w+")
-    fmt = "fasta" if reads.split(
-        '.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
+    ext = reads.lower().split('.')[-1]
+    if ext == 'gz':
+        ext = reads.lower().split('.')[-2]
+    fmt = "fasta" if ext in ["fasta", "fna", "fa"] else "fastq"
 
     for r, record in enumerate(SeqIO.parse(reads, fmt)):
         binout.write(f"{read_bin[r]}\n")
@@ -453,8 +455,10 @@ def perform_binning_HDBSCAN(output, min_cluster_size, binreads, reads, threads):
 
     binout = open(f"{output}/bins.txt", "w+")
     lenout = open(f"{output}/lengths.txt", "w+")
-    fmt = "fasta" if reads.split(
-        '.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
+    ext = reads.lower().split('.')[-1]
+    if ext == 'gz':
+        ext = reads.lower().split('.')[-2]
+    fmt = "fasta" if ext in ["fasta", "fna", "fa"] else "fastq"
 
     if binreads:
         if os.path.isdir(f"{output}/binned_reads"):

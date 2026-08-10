@@ -16,7 +16,10 @@ reads = args.reads
 bins = args.bins
 outpath = args.outpath
 
-fmt = "fasta" if reads.split('.')[-1].lower() in ["fasta", "fna", "fa"] else "fastq"
+ext = reads.lower().split('.')[-1]
+if ext == 'gz':
+    ext = reads.lower().split('.')[-2]
+fmt = "fasta" if ext in ["fasta", "fna", "fa"] else "fastq"
 bins = pickle.load(open(bins, "rb"))
 bin_files = {}
 read_bin = {}
